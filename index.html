@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Distribución Servicios PRO</title>
 
-<!-- Librerías -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
@@ -23,7 +23,7 @@ th{background:#333}
 .valorDistribuido{color:#00cec9;font-weight:bold}
 .total{font-size:20px;font-weight:bold;color:#00ff99}
 .fecha{color:red;font-weight:bold}
-.x{color:red;cursor:pointer;font-size:12px}
+.x{color:red;cursor:pointer;font-size:13px;font-weight:bold}
 .resumen{margin-top:30px;padding:20px;background:#1e1e1e;border-radius:10px}
 .correcto{color:#00ff99}
 .error{color:red}
@@ -31,6 +31,8 @@ th{background:#333}
 </style>
 </head>
 <body>
+
+<div id="contenidoPDF">
 
 <h2>Agregar Responsable</h2>
 <input id="nombreResp" placeholder="Nombre responsable">
@@ -55,7 +57,6 @@ th{background:#333}
 <input id="fechaPago" type="date" placeholder="Fecha límite">
 
 <div id="distribucionInputs"></div>
-
 <button onclick="agregarServicio()">Agregar Servicio</button>
 
 <h2>Servicios Ingresados</h2>
@@ -74,272 +75,264 @@ th{background:#333}
 <button onclick="exportarPDF()">📄 Exportar a PDF</button>
 </div>
 
+</div>
+
 <script>
 
 let responsables=[];
 let servicios=[];
 let ajustes={};
 
-function formato(n){
- return "$"+Math.round(n).toLocaleString("es-CO");
-}
-
-function redondear100(n){
- return Math.ceil(n/100)*100;
-}
+function formato(n){return "$"+Math.round(n).toLocaleString("es-CO")}
+function redondear100(n){return Math.ceil(n/100)*100}
 
 function guardar(){
- localStorage.setItem("datosServicios",JSON.stringify({responsables,servicios,ajustes}));
+localStorage.setItem("datosServicios",JSON.stringify({responsables,servicios,ajustes}))
 }
 
 function cargar(){
- let data=localStorage.getItem("datosServicios");
- if(data){
-  let parsed=JSON.parse(data);
-  responsables=parsed.responsables||[];
-  servicios=parsed.servicios||[];
-  ajustes=parsed.ajustes||{};
- }
+let d=localStorage.getItem("datosServicios")
+if(d){
+let p=JSON.parse(d)
+responsables=p.responsables||[]
+servicios=p.servicios||[]
+ajustes=p.ajustes||{}
+}
 }
 
 window.onload=function(){
- cargar();
- renderResponsables();
- renderServiciosAcumulados();
- renderTarjetas();
+cargar()
+renderResponsables()
+renderServiciosAcumulados()
+renderTarjetas()
 }
 
 window.addEventListener("beforeunload",function(e){
- if(servicios.length>0){
-  e.preventDefault();
-  e.returnValue="Hay datos sin guardar";
- }
-});
+if(servicios.length>0){
+e.preventDefault()
+e.returnValue="Hay datos sin guardar"
+}
+})
 
 function agregarResponsable(){
- const nombre=document.getElementById("nombreResp").value.trim();
- if(!nombre)return;
- responsables.push(nombre);
- document.getElementById("nombreResp").value="";
- guardar();
- renderResponsables();
- renderTarjetas();
+let nombre=document.getElementById("nombreResp").value.trim()
+if(!nombre)return
+responsables.push(nombre)
+document.getElementById("nombreResp").value=""
+guardar()
+renderResponsables()
+renderTarjetas()
 }
 
 function eliminarResponsable(nombre){
- responsables=responsables.filter(r=>r!==nombre);
- servicios.forEach(s=>{
-  s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre);
- });
- delete ajustes[nombre];
- guardar();
- renderResponsables();
- renderTarjetas();
+responsables=responsables.filter(r=>r!==nombre)
+servicios.forEach(s=>{s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre)})
+delete ajustes[nombre]
+guardar()
+renderResponsables()
+renderTarjetas()
 }
 
 function renderResponsables(){
- let html="<ul>";
- responsables.forEach(r=>{
-  html+=`<li>${r} <span class="x" onclick="eliminarResponsable('${r}')">x</span></li>`;
- });
- html+="</ul>";
- document.getElementById("listaResp").innerHTML=html;
+let html="<ul>"
+responsables.forEach(r=>{
+html+=`<li>${r} <span class="x" onclick="eliminarResponsable('${r}')">x</span></li>`
+})
+html+="</ul>"
+document.getElementById("listaResp").innerHTML=html
 
- let inputs="";
- responsables.forEach((r,i)=>{
-  inputs+=`${r}: <input type="number" step="any" id="dist_${i}" placeholder="Personas"><br>`;
- });
- document.getElementById("distribucionInputs").innerHTML=inputs;
+let inputs=""
+responsables.forEach((r,i)=>{
+inputs+=`${r}: <input type="number" step="any" id="dist_${i}" placeholder="Personas"><br>`
+})
+document.getElementById("distribucionInputs").innerHTML=inputs
 }
 
 function agregarServicio(){
- const nombre=document.getElementById("servicio").value;
- const valor=parseFloat(document.getElementById("valorServicio").value);
- const fecha=document.getElementById("fechaPago").value;
+let nombre=document.getElementById("servicio").value
+let valor=parseFloat(document.getElementById("valorServicio").value)
+let fecha=document.getElementById("fechaPago").value
 
- if(!nombre||!valor||!fecha)return alert("Complete datos");
+if(!nombre||!valor||!fecha)return alert("Complete datos")
+if(servicios.find(s=>s.nombre===nombre))return alert("Servicio ya ingresado")
 
- if(servicios.find(s=>s.nombre===nombre))
-  return alert("Servicio ya ingresado");
+let distribucion=[]
+let totalPersonas=0
 
- let distribucion=[];
- let totalPersonas=0;
+responsables.forEach((r,i)=>{
+let p=parseFloat(document.getElementById("dist_"+i).value)||0
+if(p>0){
+distribucion.push({responsable:r,personas:p})
+totalPersonas+=p
+}
+})
 
- responsables.forEach((r,i)=>{
-  let p=parseFloat(document.getElementById("dist_"+i).value)||0;
-  if(p>0){
-   distribucion.push({responsable:r,personas:p});
-   totalPersonas+=p;
-  }
- });
+if(!Number.isInteger(totalPersonas))return alert("La suma de personas debe ser entera")
 
- if(!Number.isInteger(totalPersonas))
-  return alert("La suma de personas debe ser entera");
-
- servicios.push({nombre,valor,fecha,distribucion,totalPersonas});
- guardar();
- renderServiciosAcumulados();
- renderTarjetas();
+servicios.push({nombre,valor,fecha,distribucion,totalPersonas})
+guardar()
+renderServiciosAcumulados()
+renderTarjetas()
 }
 
 function eliminarServicio(nombre){
- servicios=servicios.filter(s=>s.nombre!==nombre);
- guardar();
- renderServiciosAcumulados();
- renderTarjetas();
+servicios=servicios.filter(s=>s.nombre!==nombre)
+guardar()
+renderServiciosAcumulados()
+renderTarjetas()
+}
+
+function eliminarDistribucion(index,responsable){
+servicios[index].distribucion=servicios[index].distribucion.filter(d=>d.responsable!==responsable)
+guardar()
+renderTarjetas()
+}
+
+function aplicarAjt(nombre){
+let valor=parseFloat(document.getElementById("valorAjt_"+nombre).value)||0
+if(!valor)return
+if(!ajustes[nombre])ajustes[nombre]=0
+ajustes[nombre]+=valor
+guardar()
+renderTarjetas()
+}
+
+function eliminarAjt(nombre){
+ajustes[nombre]=0
+guardar()
+renderTarjetas()
 }
 
 function renderServiciosAcumulados(){
- let html="<ul>";
- servicios.forEach(s=>{
-  html+=`<li>${s.nombre} - ${formato(s.valor)} 
-  <span class="x" onclick="eliminarServicio('${s.nombre}')">x</span></li>`;
- });
- html+="</ul>";
- document.getElementById("listaServicios").innerHTML=html;
-}
-
-function aplicarAjuste(nombre){
- let valor=parseFloat(document.getElementById("valorAjuste_"+nombre).value)||0;
- if(!valor)return;
- if(!ajustes[nombre])ajustes[nombre]=0;
- ajustes[nombre]+=valor;
- guardar();
- renderTarjetas();
-}
-
-function eliminarAjuste(nombre){
- ajustes[nombre]=0;
- guardar();
- renderTarjetas();
+let html="<ul>"
+servicios.forEach(s=>{
+html+=`<li>${s.nombre} - ${formato(s.valor)} 
+<span class="x" onclick="eliminarServicio('${s.nombre}')">x</span></li>`
+})
+html+="</ul>"
+document.getElementById("listaServicios").innerHTML=html
 }
 
 function renderTarjetas(){
- let html="";
- let totalFactura=servicios.reduce((a,s)=>a+s.valor,0);
- let totalDistribuido=0;
- let totalAjustes=0;
+let html=""
+let totalFactura=servicios.reduce((a,s)=>a+s.valor,0)
+let totalDistribuido=0
+let totalAjustes=0
 
- responsables.forEach(r=>{
-  let filas="";
-  let totalPersona=0;
+responsables.forEach(r=>{
+let filas=""
+let totalPersona=0
 
-  servicios.forEach(s=>{
-   let dist=s.distribucion.find(d=>d.responsable===r);
-   if(dist){
-    let unit=s.valor/s.totalPersonas;
-    let valorDist=unit*dist.personas;
-    totalPersona+=valorDist;
-    totalDistribuido+=valorDist;
+servicios.forEach((s,index)=>{
+let dist=s.distribucion.find(d=>d.responsable===r)
+if(dist){
+let unit=s.valor/s.totalPersonas
+let valorDist=unit*dist.personas
+totalPersona+=valorDist
+totalDistribuido+=valorDist
 
-    filas+=`
-    <tr>
-     <td>${s.nombre}</td>
-     <td class="valorFactura">${formato(s.valor)}</td>
-     <td>${Math.round(dist.personas)}</td>
-     <td class="valorDistribuido">${formato(valorDist)}</td>
-    </tr>`;
-   }
-  });
+filas+=`
+<tr>
+<td>${s.nombre}</td>
+<td class="valorFactura">${formato(s.valor)}</td>
+<td>${Math.round(dist.personas)}</td>
+<td class="valorDistribuido">${formato(valorDist)}</td>
+<td><span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span></td>
+</tr>`
+}
+})
 
-  let ajuste=ajustes[r]||0;
-  totalPersona+=ajuste;
-  totalAjustes+=ajuste;
+let ajt=ajustes[r]||0
+totalPersona+=ajt
+totalAjustes+=ajt
 
-  html+=`
-  <div class="card">
-   <h3>${r}</h3>
-   <p class="fecha">Pagar antes de: ${
-    servicios.length>0?
-    new Date(servicios[0].fecha).toLocaleDateString("es-CO"):
-    "-"
-   }</p>
+html+=`
+<div class="card">
+<h3>${r}</h3>
+<p class="fecha">Pagar antes de: ${
+servicios.length>0?new Date(servicios[0].fecha).toLocaleDateString("es-CO"):"-"
+}</p>
 
-   <table>
-    <tr>
-     <th>Servicio</th>
-     <th>Valor</th>
-     <th>Personas</th>
-     <th>Valor Distr.</th>
-    </tr>
-    ${filas}
-   </table>
+<table>
+<tr>
+<th>Servicio</th>
+<th>Valor</th>
+<th>Personas</th>
+<th>Valor Distr.</th>
+<th></th>
+</tr>
+${filas}
+</table>
 
-   <br>
-   <input type="checkbox" onchange="document.getElementById('aj_'+r).style.display=this.checked?'block':'none'">
-   <label style="font-size:12px;">Ajuste</label>
+<br>
+<label style="font-size:12px">
+<input type="checkbox" onchange="document.getElementById('ajt_'+r).style.display=this.checked?'block':'none'"> Ajt
+</label>
 
-   <div id="aj_${r}" style="display:none;">
-    <input type="number" id="valorAjuste_${r}" placeholder="Valor ajuste">
-    <button onclick="aplicarAjuste('${r}')">Agregar</button>
-    <span class="x" onclick="eliminarAjuste('${r}')">x</span>
-   </div>
+<div id="ajt_${r}" style="display:none;">
+<input type="number" id="valorAjt_${r}" placeholder="Valor">
+<button onclick="aplicarAjt('${r}')">Agregar</button>
+<span class="x" onclick="eliminarAjt('${r}')">x</span>
+</div>
 
-   <p class="total">Total a pagar: ${formato(redondear100(totalPersona))}</p>
-  </div>`;
- });
+<p class="total">Total a pagar: ${formato(redondear100(totalPersona))}</p>
+</div>`
+})
 
- document.getElementById("tarjetas").innerHTML=html;
- document.getElementById("totalFactura").innerText=formato(totalFactura);
- document.getElementById("totalDistribuido").innerText=formato(totalDistribuido);
- document.getElementById("totalAjustes").innerText=formato(totalAjustes);
+document.getElementById("tarjetas").innerHTML=html
+document.getElementById("totalFactura").innerText=formato(totalFactura)
+document.getElementById("totalDistribuido").innerText=formato(totalDistribuido)
+document.getElementById("totalAjustes").innerText=formato(totalAjustes)
 
- let valid=document.getElementById("validacion");
- if(Math.round(totalFactura)===Math.round(totalDistribuido)){
-  valid.innerHTML="✔ Distribución correcta";
-  valid.className="correcto";
- }else{
-  valid.innerHTML="❌ Diferencia detectada";
-  valid.className="error";
- }
+let valid=document.getElementById("validacion")
+if(Math.round(totalFactura)===Math.round(totalDistribuido)){
+valid.innerHTML="✔ Distribución correcta"
+valid.className="correcto"
+}else{
+valid.innerHTML="❌ Diferencia detectada"
+valid.className="error"
+}
 }
 
 function exportarExcel(){
- let data=[];
- responsables.forEach(r=>{
-  servicios.forEach(s=>{
-   let dist=s.distribucion.find(d=>d.responsable===r);
-   if(dist){
-    let unit=s.valor/s.totalPersonas;
-    let valorDist=unit*dist.personas;
-    data.push({
-     Responsable:r,
-     Servicio:s.nombre,
-     ValorFactura:s.valor,
-     Personas:dist.personas,
-     ValorDistribuido:valorDist
-    });
-   }
-  });
- });
- let ws=XLSX.utils.json_to_sheet(data);
- let wb=XLSX.utils.book_new();
- XLSX.utils.book_append_sheet(wb,ws,"Servicios");
- XLSX.writeFile(wb,"DistribucionServicios.xlsx");
+let data=[]
+servicios.forEach(s=>{
+data.push({Servicio:s.nombre,ValorGeneral:s.valor})
+})
+responsables.forEach(r=>{
+let total=0
+servicios.forEach(s=>{
+let dist=s.distribucion.find(d=>d.responsable===r)
+if(dist){
+let unit=s.valor/s.totalPersonas
+let valorDist=unit*dist.personas
+total+=valorDist
+data.push({
+Responsable:r,
+Servicio:s.nombre,
+ValorDistribuido:valorDist
+})
+}
+})
+data.push({Responsable:r,TotalFinal:redondear100(total+(ajustes[r]||0))})
+})
+let ws=XLSX.utils.json_to_sheet(data)
+let wb=XLSX.utils.book_new()
+XLSX.utils.book_append_sheet(wb,ws,"Resumen")
+XLSX.writeFile(wb,"DistribucionServicios.xlsx")
 }
 
 async function exportarPDF(){
- const {jsPDF}=window.jspdf;
- const doc=new jsPDF();
- let y=10;
- responsables.forEach(r=>{
-  doc.text("Responsable: "+r,10,y);
-  y+=6;
-  servicios.forEach(s=>{
-   let dist=s.distribucion.find(d=>d.responsable===r);
-   if(dist){
-    let unit=s.valor/s.totalPersonas;
-    let valorDist=unit*dist.personas;
-    doc.text(s.nombre+" - $"+Math.round(valorDist),15,y);
-    y+=6;
-   }
-  });
-  y+=8;
- });
- doc.save("DistribucionServicios.pdf");
+const {jsPDF}=window.jspdf
+let canvas=await html2canvas(document.getElementById("contenidoPDF"))
+let img=canvas.toDataURL("image/png")
+let pdf=new jsPDF("p","mm","a4")
+let width=190
+let height=canvas.height*width/canvas.width
+pdf.addImage(img,"PNG",10,10,width,height)
+pdf.save("DistribucionServicios.pdf")
 }
 
 </script>
-
 </body>
 </html>
