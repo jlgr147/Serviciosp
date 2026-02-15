@@ -9,11 +9,12 @@
 body{
     font-family: 'Segoe UI', sans-serif;
     background: linear-gradient(135deg,#1e3c72,#2a5298);
-    padding:20px;
+    padding:15px;
+    margin:0;
 }
 .container{
     background:white;
-    padding:25px;
+    padding:20px;
     border-radius:20px;
     max-width:1200px;
     margin:auto;
@@ -23,7 +24,8 @@ input,select{
     padding:8px;
     border-radius:8px;
     border:1px solid #ccc;
-    margin:5px;
+    margin:5px 0;
+    width:100%;
 }
 button{
     padding:8px 15px;
@@ -32,41 +34,62 @@ button{
     background:#2a5298;
     color:white;
     cursor:pointer;
+    margin-top:5px;
 }
 button:hover{opacity:0.9;}
+
+.form-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap:10px;
+}
+
 .card{
     background:#1f1f1f;
     color:white;
-    padding:20px;
+    padding:15px;
     border-radius:20px;
     margin-top:20px;
+    overflow-x:auto;
 }
+
 table{
     width:100%;
-    margin-top:10px;
     border-collapse:collapse;
+    margin-top:10px;
 }
+
 th,td{
-    padding:8px;
+    padding:6px;
     text-align:center;
+    font-size:14px;
 }
+
 th{
     background:#2a5298;
 }
+
 .valor{
     color:#ff4fa3;
     font-weight:bold;
 }
+
 .total{
     margin-top:10px;
     font-weight:bold;
 }
+
 .fecha{
     color:#00ffb3;
-    font-size:14px;
+    font-size:13px;
 }
+
 .correcto{color:green;font-weight:bold;}
 .error{color:red;font-weight:bold;}
+
+@media(max-width:600px){
+    th,td{font-size:12px;}
+}
 </style>
 </head>
 <body>
@@ -75,6 +98,7 @@ th{
 
 <h2>Agregar Servicio</h2>
 
+<div class="form-grid">
 <select id="servicio">
 <option>Agua</option>
 <option>Internet claro</option>
@@ -96,13 +120,10 @@ th{
 <option>Ismael Garzón</option>
 </select>
 
-<input type="number" id="cantidad" placeholder="Cantidad personas">
-
-<label>
-<input type="checkbox" id="aplica" checked> Aplica
-</label>
+<input type="number" id="cantidad" placeholder="Cantidad personas que asume">
 
 <button onclick="agregarServicio()">Agregar</button>
+</div>
 
 <label>
 <input type="checkbox" id="redondear"> Redondear al 100 más cercano
@@ -110,7 +131,7 @@ th{
 
 <div id="tarjetas"></div>
 
-<h2>Total General Servicios: $ <span id="totalGeneral">0</span></h2>
+<h3>Total General Servicios: $ <span id="totalGeneral">0</span></h3>
 <div id="mensaje"></div>
 
 </div>
@@ -119,6 +140,10 @@ th{
 
 let datos = [];
 
+function formato(n){
+    return Math.round(n).toLocaleString("es-CO");
+}
+
 function agregarServicio(){
 
     let nombre = servicio.value;
@@ -126,14 +151,11 @@ function agregarServicio(){
     let fecha = fechaInput.value;
     let rep = representante.value;
     let cantidad = parseFloat(cantidadInput.value);
-    let aplica = aplicaCheck.checked;
 
     if(!valor || !fecha || !cantidad){
         alert("Complete los datos");
         return;
     }
-
-    if(!aplica) return;
 
     datos.push({nombre,valor,fecha,rep,cantidad});
     render();
@@ -144,17 +166,19 @@ const valorInput = document.getElementById("valor");
 const fechaInput = document.getElementById("fecha");
 const representante = document.getElementById("representante");
 const cantidadInput = document.getElementById("cantidad");
-const aplicaCheck = document.getElementById("aplica");
+const redondear = document.getElementById("redondear");
 
 function render(){
 
     let contenedor = document.getElementById("tarjetas");
     contenedor.innerHTML="";
 
-    let reps = [...new Set(datos.map(d=>d.rep))];
+    let serviciosUnicos = [...new Set(datos.map(d=>d.nombre))];
 
-    let totalGeneralReal = 0;
+    let totalReal = 0;
     let totalDistribuido = 0;
+
+    let reps = [...new Set(datos.map(d=>d.rep))];
 
     reps.forEach(rep=>{
 
@@ -177,23 +201,30 @@ function render(){
 
         serviciosRep.forEach(s=>{
 
-            let valorPersona = s.valor / s.cantidad;
+            // Total personas que aplican a este servicio
+            let totalPersonasServicio =
+                datos.filter(d=>d.nombre===s.nombre)
+                     .reduce((a,b)=>a+b.cantidad,0);
+
+            let valorUnitario = s.valor / totalPersonasServicio;
 
             if(redondear.checked){
-                valorPersona = Math.round(valorPersona/100)*100;
+                valorUnitario = Math.round(valorUnitario/100)*100;
             }
+
+            let valorDistribuido = valorUnitario * s.cantidad;
 
             html+=`
             <tr>
             <td>${s.nombre}</td>
-            <td>$ ${s.valor.toLocaleString()}</td>
+            <td>$ ${formato(s.valor)}</td>
             <td>${s.cantidad}</td>
-            <td class="valor">$ ${valorPersona.toLocaleString()}</td>
+            <td class="valor">$ ${formato(valorDistribuido)}</td>
             </tr>`;
 
-            totalPersona+=valorPersona;
-            totalGeneralReal+=s.valor;
-            totalDistribuido+=valorPersona;
+            totalPersona+=valorDistribuido;
+            totalReal+=s.valor;
+            totalDistribuido+=valorDistribuido;
 
             if(!fechaMasCercana || s.fecha < fechaMasCercana){
                 fechaMasCercana=s.fecha;
@@ -204,12 +235,15 @@ function render(){
 
         html+=`
         <div class="total">
-        Ajuste: <input type="number" value="0" onchange="render()">
+        Nombre ajuste:
+        <input type="text" placeholder="Ej: Saldo anterior">
+        Valor ajuste:
+        <input type="number" value="0" onchange="render()">
         </div>`;
 
         html+=`
         <div class="total">
-        Total a pagar: $ ${totalPersona.toLocaleString()}
+        Total a pagar: $ ${formato(totalPersona)}
         </div>`;
 
         html+=`
@@ -221,9 +255,9 @@ function render(){
         contenedor.appendChild(card);
     });
 
-    document.getElementById("totalGeneral").innerText=totalGeneralReal.toLocaleString();
+    document.getElementById("totalGeneral").innerText=formato(totalReal);
 
-    if(totalGeneralReal === totalDistribuido){
+    if(Math.round(totalReal) === Math.round(totalDistribuido)){
         mensaje.innerHTML="<div class='correcto'>Distribución correcta ✅</div>";
     }else{
         mensaje.innerHTML="<div class='error'>Hay diferencia ⚠</div>";
