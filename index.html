@@ -1,304 +1,288 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución de Servicios</title>
+<title>Distribución Servicios</title>
 
 <style>
 body{
-font-family:'Segoe UI',sans-serif;
-background:#f3f4f6;
-margin:0;
-padding:20px;
+  background:#111;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  margin:0;
+  padding:20px;
 }
 
-.container{max-width:1200px;margin:auto}
+h2{margin-top:40px;}
 
-.card{
-background:#111827;
-color:white;
-padding:20px;
-border-radius:16px;
-box-shadow:0 8px 25px rgba(0,0,0,0.25);
-margin-bottom:25px;
-}
-
-.factura{color:#9ca3af;}
-.distribuido{color:#22c55e;font-weight:bold;}
-.total-final{font-size:22px;color:#facc15;margin-top:15px;}
-.fecha{font-size:13px;color:#f87171;margin-bottom:10px;}
-
-input,select{
-padding:6px;
-border-radius:6px;
-border:1px solid #ccc;
-width:100%;
+input, select{
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  margin:4px;
 }
 
 button{
-background:#2563eb;
-color:white;
-border:none;
-padding:6px 12px;
-border-radius:8px;
-cursor:pointer;
-margin-top:6px;
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#00b894;
+  color:white;
 }
 
-.delete-btn{
-color:#ef4444;
-cursor:pointer;
-font-size:14px;
-}
+button:hover{opacity:0.8;}
 
-.summary{
-background:white;
-padding:20px;
-border-radius:15px;
-font-weight:bold;
+.card{
+  background:#1e1e1e;
+  padding:20px;
+  margin-top:20px;
+  border-radius:12px;
+  box-shadow:0 0 15px rgba(0,0,0,0.5);
 }
 
 table{
-width:100%;
-border-collapse:collapse;
-margin-top:10px;
+  width:100%;
+  margin-top:10px;
+  border-collapse:collapse;
 }
 
 th,td{
-padding:8px;
-border-bottom:1px solid #374151;
-text-align:center;
-font-size:14px;
+  padding:6px;
+  text-align:center;
+  font-size:14px;
 }
 
-.small-check{
-transform:scale(.8);
-margin-right:6px;
+th{
+  background:#333;
+}
+
+.valorFactura{
+  color:#ccc;
+}
+
+.valorDistribuido{
+  color:#00cec9;
+}
+
+.total{
+  font-size:20px;
+  font-weight:bold;
+  color:#00ff99;
+}
+
+.x{
+  color:red;
+  cursor:pointer;
+  font-size:12px;
+}
+
+.resumen{
+  margin-top:30px;
+  padding:20px;
+  background:#1e1e1e;
+  border-radius:10px;
 }
 
 @media(max-width:768px){
-table{font-size:12px}
+  table{font-size:12px;}
 }
 </style>
 </head>
-
 <body>
-<div class="container">
+
+<h2>Agregar Responsable</h2>
+<input id="nombreResp" placeholder="Nombre responsable">
+<input id="cantResp" type="number" placeholder="Cantidad personas">
+<button onclick="agregarResponsable()">Agregar</button>
+
+<div id="listaResp"></div>
 
 <h2>Agregar Servicio</h2>
-<div style="background:white;padding:20px;border-radius:15px">
-
-<select id="serviceName">
+<select id="servicio">
 <option>Agua</option>
 <option>Internet claro</option>
 <option>Internet Barbosa</option>
 <option>Gas</option>
 <option>Luz</option>
-<option>aseo</option>
+<option>Aseo</option>
 <option>Seguro</option>
-<option>Netfix - youtube</option>
+<option>Netflix - YouTube</option>
 </select>
 
-<input type="number" id="serviceValue" placeholder="Valor del servicio">
-<input type="date" id="serviceDate">
-<button onclick="addService()">Agregar</button>
+<input id="valorServicio" type="number" placeholder="Valor servicio">
+<input id="fechaPago" type="date">
 
-</div>
+<div id="distribucionInputs"></div>
 
-<h2>Representantes</h2>
-<div id="representatives"></div>
+<button onclick="agregarServicio()">Agregar Servicio</button>
 
-<h2>Resumen General</h2>
-<div class="summary" id="summary"></div>
+<div id="tarjetas"></div>
 
+<div class="resumen">
+<h3>Resumen General</h3>
+<p>Total Servicios Ingresados: <span id="totalFactura">$0</span></p>
+<p>Total Distribuido: <span id="totalDistribuido">$0</span></p>
+<p>Total Ajustes: <span id="totalAjustes">$0</span></p>
 </div>
 
 <script>
 
-let services=[]
+let responsables=[];
+let servicios=[];
+let ajustesGlobal=0;
 
-let reps=[
-{nombre:"Jorge Garzón", personasPorServicio:{}, ajuste:null},
-{nombre:"Jorge Balero", personasPorServicio:{}, ajuste:null},
-{nombre:"Arturo Castro", personasPorServicio:{}, ajuste:null},
-{nombre:"Ismael Garzón", personasPorServicio:{}, ajuste:null}
-]
-
-function format(n){
-return Math.round(n).toLocaleString("es-CO")
+function formato(n){
+ return "$"+Math.round(n).toLocaleString("es-CO");
 }
 
-function round100(n){
-return Math.ceil(n/100)*100
+function agregarResponsable(){
+ const nombre=document.getElementById("nombreResp").value;
+ const cant=Math.round(parseFloat(document.getElementById("cantResp").value)||0);
+
+ if(!nombre || cant<=0) return;
+
+ responsables.push({nombre,cantidad:cant});
+ document.getElementById("nombreResp").value="";
+ document.getElementById("cantResp").value="";
+ renderResponsables();
 }
 
-function formatDate(fecha){
-if(!fecha) return "-"
-let d=new Date(fecha)
-return d.toLocaleDateString("es-CO")
+function renderResponsables(){
+ let html="<ul>";
+ responsables.forEach(r=>{
+   html+=`<li>${r.nombre} - ${r.cantidad} personas</li>`;
+ });
+ html+="</ul>";
+ document.getElementById("listaResp").innerHTML=html;
+
+ let inputs="";
+ responsables.forEach((r,i)=>{
+   inputs+=`${r.nombre}: <input type="number" id="dist_${i}" placeholder="Personas que aplican"><br>`;
+ });
+ document.getElementById("distribucionInputs").innerHTML=inputs;
 }
 
-function addService(){
-let name=document.getElementById("serviceName").value
-let value=parseFloat(document.getElementById("serviceValue").value)
-let date=document.getElementById("serviceDate").value
-if(!value || !date) return
-services.push({name,value,date})
-render()
+function agregarServicio(){
+ const nombre=document.getElementById("servicio").value;
+ const valor=parseFloat(document.getElementById("valorServicio").value)||0;
+ const fecha=document.getElementById("fechaPago").value;
+
+ if(valor<=0 || !fecha) return;
+
+ let totalPersonas=0;
+ let distribucion=[];
+
+ responsables.forEach((r,i)=>{
+   let p=Math.round(parseFloat(document.getElementById("dist_"+i).value)||0);
+   if(p>0){
+     distribucion.push({responsable:r.nombre,personas:p});
+     totalPersonas+=p;
+   }
+ });
+
+ if(totalPersonas===0) return;
+
+ servicios.push({nombre,valor,fecha,distribucion,totalPersonas});
+ document.getElementById("valorServicio").value="";
+ renderTarjetas();
 }
 
-function render(){
+function renderTarjetas(){
+ let html="";
+ let totalFactura=0;
+ let totalDistribuido=0;
+ ajustesGlobal=0;
 
-let totalIngresado=services.reduce((a,b)=>a+b.value,0)
-let totalDistribuido=0
-let totalAjustes=0
+ responsables.forEach(r=>{
+   let filas="";
+   let totalPersona=0;
 
-let container=document.getElementById("representatives")
-container.innerHTML=""
+   servicios.forEach((s,index)=>{
+     let dist=s.distribucion.find(d=>d.responsable===r.nombre);
+     if(dist){
+       let unit=s.valor/s.totalPersonas;
+       let valorDist=unit*dist.personas;
+       totalPersona+=valorDist;
+       totalDistribuido+=valorDist;
 
-reps.forEach((rep,ri)=>{
+       filas+=`
+       <tr>
+         <td>${s.nombre}</td>
+         <td class="valorFactura">${formato(s.valor)}</td>
+         <td>${dist.personas}</td>
+         <td class="valorDistribuido">${formato(valorDist)}</td>
+         <td><span class="x" onclick="eliminarDistribucion(${index},'${r.nombre}')">x</span></td>
+       </tr>`;
+     }
+   });
 
-let card=document.createElement("div")
-card.className="card"
+   totalFactura=servicios.reduce((acc,s)=>acc+s.valor,0);
 
-let totalRep=0
-let fechas=[]
+   let idAjuste="ajuste_"+r.nombre.replace(/\s/g,"");
+   let idValor="valor_"+r.nombre.replace(/\s/g,"");
 
-let tabla=`
-<table>
-<tr>
-<th>Servicio</th>
-<th>Valor Factura</th>
-<th>Personas</th>
-<th>Valor Distr</th>
-<th></th>
-</tr>`
+   html+=`
+   <div class="card">
+     <h3>${r.nombre}</h3>
+     <p>Fecha límite: ${
+        servicios.length>0 ? 
+        new Date(servicios[0].fecha).toLocaleDateString("es-CO") 
+        : "-"
+     }</p>
 
-services.forEach((s,si)=>{
+     <table>
+       <tr>
+         <th>Servicio</th>
+         <th>Valor Factura</th>
+         <th>Personas</th>
+         <th>Valor Distribuido</th>
+         <th></th>
+       </tr>
+       ${filas}
+     </table>
 
-let personasRep=Math.round(rep.personasPorServicio[si] || 0)
-if(personasRep<=0) return
+     <br>
+     <input type="checkbox" id="${idAjuste}" onchange="toggleAjuste('${r.nombre}')"> 
+     <label style="font-size:12px;">Ajuste</label>
 
-let totalPersonasServicio=0
-reps.forEach(r=>{
-totalPersonasServicio+=Math.round(r.personasPorServicio[si] || 0)
-})
+     <div id="campo_${r.nombre.replace(/\s/g,"")}" style="display:none;">
+       <input placeholder="Concepto ajuste" id="concepto_${r.nombre}">
+       <input type="number" placeholder="Valor" id="${idValor}">
+       <button onclick="aplicarAjuste('${r.nombre}')">Agregar</button>
+     </div>
 
-if(totalPersonasServicio===0) return
+     <p class="total">Total a pagar: ${formato(Math.round(totalPersona/100)*100)}</p>
+   </div>`;
+ });
 
-let unitario=s.value/totalPersonasServicio
-let valor=unitario*personasRep
-
-totalRep+=valor
-totalDistribuido+=valor
-fechas.push(new Date(s.date))
-
-tabla+=`
-<tr>
-<td>${s.name}</td>
-<td class="factura">$${format(s.value)}</td>
-<td>
-<input type="number" step="0.01" min="0"
-value="${rep.personasPorServicio[si]||''}"
-oninput="setPersonas(${ri},${si},this.value)">
-</td>
-<td class="distribuido">$${format(valor)}</td>
-<td><span class="delete-btn" onclick="quitarServicio(${ri},${si})">✖</span></td>
-</tr>`
-})
-
-tabla+="</table>"
-
-if(rep.ajuste){
-totalRep+=rep.ajuste.valor
-totalAjustes+=rep.ajuste.valor
+ document.getElementById("tarjetas").innerHTML=html;
+ document.getElementById("totalFactura").innerText=formato(totalFactura);
+ document.getElementById("totalDistribuido").innerText=formato(totalDistribuido);
+ document.getElementById("totalAjustes").innerText=formato(ajustesGlobal);
 }
 
-let totalFinal=round100(totalRep)
-
-let fechaLimite="-"
-if(fechas.length>0){
-fechas.sort((a,b)=>a-b)
-fechaLimite=formatDate(fechas[0])
+function eliminarDistribucion(index,nombre){
+ let s=servicios[index];
+ s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre);
+ renderTarjetas();
 }
 
-let ajusteHTML=""
-
-if(rep.ajuste){
-ajusteHTML=`
-<div style="margin-top:10px;background:#1f2937;padding:10px;border-radius:8px">
-<strong>${rep.ajuste.nombre}</strong> 
-($${format(rep.ajuste.valor)})
-<span class="delete-btn" onclick="eliminarAjuste(${ri})">✖</span>
-</div>`
-}else{
-ajusteHTML=`
-<div style="margin-top:10px">
-<label style="font-size:12px;color:#9ca3af">
-<input type="checkbox" class="small-check"
-onchange="mostrarAjuste(${ri},this.checked)">
- Aplicar ajuste
-</label>
-<div id="formAjuste-${ri}" style="display:none;margin-top:8px">
-<input id="nombreAjuste-${ri}" placeholder="Nombre del ajuste">
-<input id="valorAjuste-${ri}" type="number" placeholder="Valor ajuste">
-<button onclick="aplicarAjuste(${ri})">Aplicar</button>
-</div>
-</div>`
+function toggleAjuste(nombre){
+ let campo=document.getElementById("campo_"+nombre.replace(/\s/g,""));
+ let check=document.getElementById("ajuste_"+nombre.replace(/\s/g,""));
+ campo.style.display=check.checked?"block":"none";
 }
 
-card.innerHTML=`
-<h3>${rep.nombre}</h3>
-<div class="fecha">Pagar antes de: ${fechaLimite}</div>
-${tabla}
-${ajusteHTML}
-<div class="total-final">
-Total a pagar: $${format(totalFinal)}
-</div>
-`
-
-container.appendChild(card)
-})
-
-let diferencia=(totalIngresado + totalAjustes) - totalDistribuido
-
-document.getElementById("summary").innerHTML=`
-Total servicios ingresados: $${format(totalIngresado)}<br>
-Total servicios distribuidos: $${format(totalDistribuido)}<br>
-Total ajustes: $${format(totalAjustes)}<br>
-Diferencia real: $${format(diferencia)}
-`
+function aplicarAjuste(nombre){
+ let valor=parseFloat(document.getElementById("valor_"+nombre.replace(/\s/g,"")).value)||0;
+ ajustesGlobal+=valor;
+ renderTarjetas();
 }
-
-function setPersonas(ri,si,val){
-reps[ri].personasPorServicio[si]=parseFloat(val)||0
-render()
-}
-
-function mostrarAjuste(ri,estado){
-document.getElementById(`formAjuste-${ri}`).style.display=estado?"block":"none"
-}
-
-function aplicarAjuste(ri){
-let nombre=document.getElementById(`nombreAjuste-${ri}`).value
-let valor=parseFloat(document.getElementById(`valorAjuste-${ri}`).value)||0
-reps[ri].ajuste={nombre:nombre,valor:valor}
-render()
-}
-
-function eliminarAjuste(ri){
-reps[ri].ajuste=null
-render()
-}
-
-function quitarServicio(ri,si){
-reps[ri].personasPorServicio[si]=0
-render()
-}
-
-render()
 
 </script>
+
 </body>
 </html>
