@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución de Recibos</title>
+<title>Distribución de Servicios</title>
 
 <style>
 body{
@@ -26,10 +26,10 @@ margin-bottom:25px;
 
 .factura{color:#9ca3af;}
 .distribuido{color:#22c55e;font-weight:bold;}
-.total-final{font-size:20px;color:#facc15;margin-top:15px;}
+.total-final{font-size:22px;color:#facc15;margin-top:15px;}
 .fecha{font-size:13px;color:#f87171;margin-bottom:10px;}
 
-input{
+input,select{
 padding:6px;
 border-radius:6px;
 border:1px solid #ccc;
@@ -119,10 +119,10 @@ table{font-size:12px}
 let services=[]
 
 let reps=[
-{nombre:"Jorge Garzón", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]},
-{nombre:"Jorge Balero", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]},
-{nombre:"Arturo Castro", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]},
-{nombre:"Ismael Garzón", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]}
+{nombre:"Jorge Garzón", personasPorServicio:{}, ajuste:null},
+{nombre:"Jorge Balero", personasPorServicio:{}, ajuste:null},
+{nombre:"Arturo Castro", personasPorServicio:{}, ajuste:null},
+{nombre:"Ismael Garzón", personasPorServicio:{}, ajuste:null}
 ]
 
 function format(n){
@@ -163,7 +163,7 @@ let card=document.createElement("div")
 card.className="card"
 
 let totalRep=0
-let fechaLimite="-"
+let fechas=[]
 
 let tabla=`
 <table>
@@ -177,17 +177,12 @@ let tabla=`
 
 services.forEach((s,si)=>{
 
-if(rep.eliminado.includes(si)) return
-
 let personasRep=Math.round(rep.personasPorServicio[si] || 0)
-
 if(personasRep<=0) return
 
 let totalPersonasServicio=0
-
 reps.forEach(r=>{
-let p=Math.round(r.personasPorServicio[si] || 0)
-totalPersonasServicio+=p
+totalPersonasServicio+=Math.round(r.personasPorServicio[si] || 0)
 })
 
 if(totalPersonasServicio===0) return
@@ -197,33 +192,40 @@ let valor=unitario*personasRep
 
 totalRep+=valor
 totalDistribuido+=valor
-fechaLimite=s.date
+fechas.push(new Date(s.date))
 
 tabla+=`
 <tr>
 <td>${s.name}</td>
 <td class="factura">$${format(s.value)}</td>
 <td>
-<input type="number" min="0" value="${rep.personasPorServicio[si]||0}"
+<input type="number" step="0.01" min="0"
+value="${rep.personasPorServicio[si]||''}"
 oninput="setPersonas(${ri},${si},this.value)">
 </td>
 <td class="distribuido">$${format(valor)}</td>
-<td><span class="delete-btn" onclick="removeService(${ri},${si})">✖</span></td>
+<td><span class="delete-btn" onclick="quitarServicio(${ri},${si})">✖</span></td>
 </tr>`
 })
 
 tabla+="</table>"
 
-if(rep.ajuste.activo){
+if(rep.ajuste){
 totalRep+=rep.ajuste.valor
 totalAjustes+=rep.ajuste.valor
 }
 
 let totalFinal=round100(totalRep)
 
+let fechaLimite="-"
+if(fechas.length>0){
+fechas.sort((a,b)=>a-b)
+fechaLimite=formatDate(fechas[0])
+}
+
 let ajusteHTML=""
 
-if(rep.ajuste.activo){
+if(rep.ajuste){
 ajusteHTML=`
 <div style="margin-top:10px;background:#1f2937;padding:10px;border-radius:8px">
 <strong>${rep.ajuste.nombre}</strong> 
@@ -248,7 +250,7 @@ onchange="mostrarAjuste(${ri},this.checked)">
 
 card.innerHTML=`
 <h3>${rep.nombre}</h3>
-<div class="fecha">Pagar antes de: ${formatDate(fechaLimite)}</div>
+<div class="fecha">Pagar antes de: ${fechaLimite}</div>
 ${tabla}
 ${ajusteHTML}
 <div class="total-final">
@@ -259,13 +261,13 @@ Total a pagar: $${format(totalFinal)}
 container.appendChild(card)
 })
 
-let diferencia=totalIngresado-totalDistribuido
+let diferencia=(totalIngresado + totalAjustes) - totalDistribuido
 
 document.getElementById("summary").innerHTML=`
 Total servicios ingresados: $${format(totalIngresado)}<br>
 Total servicios distribuidos: $${format(totalDistribuido)}<br>
 Total ajustes: $${format(totalAjustes)}<br>
-Diferencia: $${format(diferencia)}
+Diferencia real: $${format(diferencia)}
 `
 }
 
@@ -281,16 +283,16 @@ document.getElementById(`formAjuste-${ri}`).style.display=estado?"block":"none"
 function aplicarAjuste(ri){
 let nombre=document.getElementById(`nombreAjuste-${ri}`).value
 let valor=parseFloat(document.getElementById(`valorAjuste-${ri}`).value)||0
-reps[ri].ajuste={activo:true,nombre:nombre,valor:valor}
+reps[ri].ajuste={nombre:nombre,valor:valor}
 render()
 }
 
 function eliminarAjuste(ri){
-reps[ri].ajuste={activo:false,nombre:"",valor:0}
+reps[ri].ajuste=null
 render()
 }
 
-function removeService(ri,si){
+function quitarServicio(ri,si){
 reps[ri].personasPorServicio[si]=0
 render()
 }
