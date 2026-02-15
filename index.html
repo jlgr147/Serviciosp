@@ -3,34 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución Servicios</title>
+<title>Distribución Profesional</title>
 
 <style>
 body{
     font-family: 'Segoe UI', sans-serif;
     background: linear-gradient(135deg,#1e3c72,#2a5298);
     padding:20px;
-    display:flex;
-    justify-content:center;
 }
 .container{
     background:white;
     padding:25px;
     border-radius:20px;
-    width:100%;
-    max-width:1100px;
+    max-width:1200px;
+    margin:auto;
     box-shadow:0 15px 40px rgba(0,0,0,0.3);
 }
-h1{text-align:center;}
-
 input,select{
     padding:8px;
     border-radius:8px;
     border:1px solid #ccc;
+    margin:5px;
 }
-
 button{
-    padding:10px 15px;
+    padding:8px 15px;
     border:none;
     border-radius:10px;
     background:#2a5298;
@@ -38,43 +34,37 @@ button{
     cursor:pointer;
 }
 button:hover{opacity:0.9;}
-
 .card{
     background:#1f1f1f;
     color:white;
     padding:20px;
     border-radius:20px;
     margin-top:20px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.4);
 }
-
-.card h3{
-    margin-bottom:10px;
+table{
+    width:100%;
+    margin-top:10px;
+    border-collapse:collapse;
 }
-
-.line{
-    display:flex;
-    justify-content:space-between;
-    margin:6px 0;
+th,td{
+    padding:8px;
+    text-align:center;
 }
-
+th{
+    background:#2a5298;
+}
 .valor{
     color:#ff4fa3;
     font-weight:bold;
 }
-
 .total{
-    margin-top:15px;
-    font-size:18px;
+    margin-top:10px;
     font-weight:bold;
 }
-
 .fecha{
-    margin-top:10px;
-    font-size:14px;
     color:#00ffb3;
+    font-size:14px;
 }
-
 .correcto{color:green;font-weight:bold;}
 .error{color:red;font-weight:bold;}
 </style>
@@ -83,9 +73,7 @@ button:hover{opacity:0.9;}
 
 <div class="container">
 
-<h1>Distribución Dinámica</h1>
-
-<h3>Agregar Servicio</h3>
+<h2>Agregar Servicio</h2>
 
 <select id="servicio">
 <option>Agua</option>
@@ -99,8 +87,20 @@ button:hover{opacity:0.9;}
 </select>
 
 <input type="number" id="valor" placeholder="Valor total servicio">
-<input type="number" id="cantidad" placeholder="Cantidad personas/pisos" step="0.01">
 <input type="date" id="fecha">
+
+<select id="representante">
+<option>Jorge Garzón</option>
+<option>Jorge Balero</option>
+<option>Arturo Castro</option>
+<option>Ismael Garzón</option>
+</select>
+
+<input type="number" id="cantidad" placeholder="Cantidad personas">
+
+<label>
+<input type="checkbox" id="aplica" checked> Aplica
+</label>
 
 <button onclick="agregarServicio()">Agregar</button>
 
@@ -108,103 +108,126 @@ button:hover{opacity:0.9;}
 <input type="checkbox" id="redondear"> Redondear al 100 más cercano
 </label>
 
-<h2>Tarjetas por Persona / Piso</h2>
-<div id="distribucion"></div>
+<div id="tarjetas"></div>
 
-<h2>Total General: $ <span id="totalGeneral">0</span></h2>
+<h2>Total General Servicios: $ <span id="totalGeneral">0</span></h2>
 <div id="mensaje"></div>
 
 </div>
 
 <script>
 
-let servicios = [];
+let datos = [];
 
 function agregarServicio(){
 
-    let nombre = document.getElementById("servicio").value;
-    let valor = parseFloat(document.getElementById("valor").value);
-    let cantidad = parseFloat(document.getElementById("cantidad").value);
-    let fecha = document.getElementById("fecha").value;
+    let nombre = servicio.value;
+    let valor = parseFloat(valorInput.value);
+    let fecha = fechaInput.value;
+    let rep = representante.value;
+    let cantidad = parseFloat(cantidadInput.value);
+    let aplica = aplicaCheck.checked;
 
-    if(!valor || !cantidad || !fecha){
-        alert("Complete todos los campos");
+    if(!valor || !fecha || !cantidad){
+        alert("Complete los datos");
         return;
     }
 
-    servicios.push({nombre,valor,cantidad,fecha});
-    distribuir();
+    if(!aplica) return;
+
+    datos.push({nombre,valor,fecha,rep,cantidad});
+    render();
 }
 
-function distribuir(){
+const servicio = document.getElementById("servicio");
+const valorInput = document.getElementById("valor");
+const fechaInput = document.getElementById("fecha");
+const representante = document.getElementById("representante");
+const cantidadInput = document.getElementById("cantidad");
+const aplicaCheck = document.getElementById("aplica");
 
-    let contenedor = document.getElementById("distribucion");
+function render(){
+
+    let contenedor = document.getElementById("tarjetas");
     contenedor.innerHTML="";
-    let totalGeneral=0;
-    let sumaDistribuida=0;
 
-    servicios.forEach(s=>{
+    let reps = [...new Set(datos.map(d=>d.rep))];
 
-        let valorPersona = s.valor / s.cantidad;
+    let totalGeneralReal = 0;
+    let totalDistribuido = 0;
 
-        if(document.getElementById("redondear").checked){
-            valorPersona = Math.round(valorPersona/100)*100;
-        }
+    reps.forEach(rep=>{
 
-        for(let i=1;i<=s.cantidad;i++){
+        let serviciosRep = datos.filter(d=>d.rep===rep);
 
-            let card = document.createElement("div");
-            card.className="card";
+        let card = document.createElement("div");
+        card.className="card";
 
-            card.innerHTML=`
-            <h3>${s.nombre} - Persona/Piso ${i}</h3>
+        let html=`<h3>${rep}</h3>
+        <table>
+        <tr>
+        <th>Servicio</th>
+        <th>Valor General</th>
+        <th>Personas</th>
+        <th>Valor Distr</th>
+        </tr>`;
 
-            <div class="line">
-                <span>Valor general servicio</span>
-                <span class="valor">$ ${s.valor.toLocaleString()}</span>
-            </div>
+        let totalPersona=0;
+        let fechaMasCercana=null;
 
-            <div class="line">
-                <span>C.Persona/Piso</span>
-                <span>${i}</span>
-            </div>
+        serviciosRep.forEach(s=>{
 
-            <div class="line">
-                <span>Valor por persona</span>
-                <span class="valor">$ ${valorPersona.toLocaleString()}</span>
-            </div>
+            let valorPersona = s.valor / s.cantidad;
 
-            <div class="line">
-                <span>Total servicio distribuido</span>
-                <span>$ ${(valorPersona*s.cantidad).toLocaleString()}</span>
-            </div>
+            if(redondear.checked){
+                valorPersona = Math.round(valorPersona/100)*100;
+            }
 
-            <div class="total">
-                Total a pagar: $ ${valorPersona.toLocaleString()}
-            </div>
+            html+=`
+            <tr>
+            <td>${s.nombre}</td>
+            <td>$ ${s.valor.toLocaleString()}</td>
+            <td>${s.cantidad}</td>
+            <td class="valor">$ ${valorPersona.toLocaleString()}</td>
+            </tr>`;
 
-            <div class="fecha">
-                Pagar antes de: ${s.fecha}
-            </div>
-            `;
+            totalPersona+=valorPersona;
+            totalGeneralReal+=s.valor;
+            totalDistribuido+=valorPersona;
 
-            contenedor.appendChild(card);
+            if(!fechaMasCercana || s.fecha < fechaMasCercana){
+                fechaMasCercana=s.fecha;
+            }
+        });
 
-            totalGeneral+=valorPersona;
-            sumaDistribuida+=valorPersona;
-        }
+        html+=`</table>`;
+
+        html+=`
+        <div class="total">
+        Ajuste: <input type="number" value="0" onchange="render()">
+        </div>`;
+
+        html+=`
+        <div class="total">
+        Total a pagar: $ ${totalPersona.toLocaleString()}
+        </div>`;
+
+        html+=`
+        <div class="fecha">
+        Pagar antes de: ${fechaMasCercana || ""}
+        </div>`;
+
+        card.innerHTML=html;
+        contenedor.appendChild(card);
     });
 
-    document.getElementById("totalGeneral").innerText=totalGeneral.toLocaleString();
+    document.getElementById("totalGeneral").innerText=totalGeneralReal.toLocaleString();
 
-    let totalReal = servicios.reduce((a,b)=>a+b.valor,0);
-
-    if(totalReal === sumaDistribuida){
-        document.getElementById("mensaje").innerHTML="<div class='correcto'>Distribución correcta ✅</div>";
+    if(totalGeneralReal === totalDistribuido){
+        mensaje.innerHTML="<div class='correcto'>Distribución correcta ✅</div>";
     }else{
-        document.getElementById("mensaje").innerHTML="<div class='error'>Hay diferencia en la distribución ⚠</div>";
+        mensaje.innerHTML="<div class='error'>Hay diferencia ⚠</div>";
     }
-
 }
 
 </script>
