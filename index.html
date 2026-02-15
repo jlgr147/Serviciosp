@@ -24,33 +24,16 @@ box-shadow:0 8px 25px rgba(0,0,0,0.25);
 margin-bottom:25px;
 }
 
-.factura{
-color:#9ca3af;
-}
+.factura{color:#9ca3af;}
+.distribuido{color:#22c55e;font-weight:bold;}
+.total-final{font-size:20px;color:#facc15;margin-top:15px;}
+.fecha{font-size:13px;color:#f87171;margin-bottom:10px;}
 
-.distribuido{
-color:#22c55e;
-font-weight:bold;
-}
-
-.total-final{
-font-size:20px;
-color:#facc15;
-margin-top:15px;
-}
-
-.fecha{
-font-size:13px;
-color:#f87171;
-margin-bottom:10px;
-}
-
-input,select{
+input{
 padding:6px;
 border-radius:6px;
 border:1px solid #ccc;
 width:100%;
-margin-top:5px;
 }
 
 button{
@@ -60,7 +43,7 @@ border:none;
 padding:6px 12px;
 border-radius:8px;
 cursor:pointer;
-margin-top:8px;
+margin-top:6px;
 }
 
 .delete-btn{
@@ -87,6 +70,11 @@ padding:8px;
 border-bottom:1px solid #374151;
 text-align:center;
 font-size:14px;
+}
+
+.small-check{
+transform:scale(.8);
+margin-right:6px;
 }
 
 @media(max-width:768px){
@@ -131,10 +119,10 @@ table{font-size:12px}
 let services=[]
 
 let reps=[
-{nombre:"Jorge Garzón", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]},
-{nombre:"Jorge Balero", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]},
-{nombre:"Arturo Castro", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]},
-{nombre:"Ismael Garzón", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]}
+{nombre:"Jorge Garzón", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]},
+{nombre:"Jorge Balero", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]},
+{nombre:"Arturo Castro", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]},
+{nombre:"Ismael Garzón", personasPorServicio:{}, ajuste:{activo:false,nombre:"",valor:0}, eliminado:[]}
 ]
 
 function format(n){
@@ -145,13 +133,18 @@ function round100(n){
 return Math.ceil(n/100)*100
 }
 
+function formatDate(fecha){
+if(!fecha) return "-"
+let d=new Date(fecha)
+return d.toLocaleDateString("es-CO")
+}
+
 function addService(){
 let name=document.getElementById("serviceName").value
 let value=parseFloat(document.getElementById("serviceValue").value)
 let date=document.getElementById("serviceDate").value
 if(!value || !date) return
 services.push({name,value,date})
-document.getElementById("serviceValue").value=""
 render()
 }
 
@@ -170,7 +163,7 @@ let card=document.createElement("div")
 card.className="card"
 
 let totalRep=0
-let fechaLimite=""
+let fechaLimite="-"
 
 let tabla=`
 <table>
@@ -186,18 +179,21 @@ services.forEach((s,si)=>{
 
 if(rep.eliminado.includes(si)) return
 
-let personasTotales=0
+let personasRep=Math.round(rep.personasPorServicio[si] || 0)
+
+if(personasRep<=0) return
+
+let totalPersonasServicio=0
 
 reps.forEach(r=>{
-if(!r.eliminado.includes(si)){
-personasTotales+=Math.round(r.personas)
-}
+let p=Math.round(r.personasPorServicio[si] || 0)
+totalPersonasServicio+=p
 })
 
-if(personasTotales===0) return
+if(totalPersonasServicio===0) return
 
-let unitario=s.value/personasTotales
-let valor=unitario*Math.round(rep.personas)
+let unitario=s.value/totalPersonasServicio
+let valor=unitario*personasRep
 
 totalRep+=valor
 totalDistribuido+=valor
@@ -207,7 +203,10 @@ tabla+=`
 <tr>
 <td>${s.name}</td>
 <td class="factura">$${format(s.value)}</td>
-<td>${Math.round(rep.personas)}</td>
+<td>
+<input type="number" min="0" value="${rep.personasPorServicio[si]||0}"
+oninput="setPersonas(${ri},${si},this.value)">
+</td>
 <td class="distribuido">$${format(valor)}</td>
 <td><span class="delete-btn" onclick="removeService(${ri},${si})">✖</span></td>
 </tr>`
@@ -215,28 +214,43 @@ tabla+=`
 
 tabla+="</table>"
 
-totalRep+=rep.ajusteAplicado
-totalAjustes+=rep.ajusteAplicado
+if(rep.ajuste.activo){
+totalRep+=rep.ajuste.valor
+totalAjustes+=rep.ajuste.valor
+}
 
 let totalFinal=round100(totalRep)
 
-card.innerHTML=`
-<h3>${rep.nombre}</h3>
-<div class="fecha">Pagar antes de: ${fechaLimite || "-"}</div>
-${tabla}
+let ajusteHTML=""
 
-<div style="margin-top:15px;background:#1f2937;padding:10px;border-radius:8px">
+if(rep.ajuste.activo){
+ajusteHTML=`
+<div style="margin-top:10px;background:#1f2937;padding:10px;border-radius:8px">
+<strong>${rep.ajuste.nombre}</strong> 
+($${format(rep.ajuste.valor)})
+<span class="delete-btn" onclick="eliminarAjuste(${ri})">✖</span>
+</div>`
+}else{
+ajusteHTML=`
+<div style="margin-top:10px">
+<label style="font-size:12px;color:#9ca3af">
+<input type="checkbox" class="small-check"
+onchange="mostrarAjuste(${ri},this.checked)">
+ Aplicar ajuste
+</label>
+<div id="formAjuste-${ri}" style="display:none;margin-top:8px">
 <input id="nombreAjuste-${ri}" placeholder="Nombre del ajuste">
 <input id="valorAjuste-${ri}" type="number" placeholder="Valor ajuste">
-<button onclick="aplicarAjuste(${ri})">Agregar ajuste</button>
-${rep.ajusteAplicado!=0?`
-<div style="margin-top:8px">
-Ajuste aplicado: ${rep.ajusteNombre} 
-($${format(rep.ajusteAplicado)})
-<span class="delete-btn" onclick="eliminarAjuste(${ri})">✖</span>
-</div>`:""}
+<button onclick="aplicarAjuste(${ri})">Aplicar</button>
 </div>
+</div>`
+}
 
+card.innerHTML=`
+<h3>${rep.nombre}</h3>
+<div class="fecha">Pagar antes de: ${formatDate(fechaLimite)}</div>
+${tabla}
+${ajusteHTML}
 <div class="total-final">
 Total a pagar: $${format(totalFinal)}
 </div>
@@ -255,22 +269,29 @@ Diferencia: $${format(diferencia)}
 `
 }
 
+function setPersonas(ri,si,val){
+reps[ri].personasPorServicio[si]=parseFloat(val)||0
+render()
+}
+
+function mostrarAjuste(ri,estado){
+document.getElementById(`formAjuste-${ri}`).style.display=estado?"block":"none"
+}
+
 function aplicarAjuste(ri){
 let nombre=document.getElementById(`nombreAjuste-${ri}`).value
 let valor=parseFloat(document.getElementById(`valorAjuste-${ri}`).value)||0
-reps[ri].ajusteNombre=nombre
-reps[ri].ajusteAplicado=valor
+reps[ri].ajuste={activo:true,nombre:nombre,valor:valor}
 render()
 }
 
 function eliminarAjuste(ri){
-reps[ri].ajusteAplicado=0
-reps[ri].ajusteNombre=""
+reps[ri].ajuste={activo:false,nombre:"",valor:0}
 render()
 }
 
 function removeService(ri,si){
-reps[ri].eliminado.push(si)
+reps[ri].personasPorServicio[si]=0
 render()
 }
 
