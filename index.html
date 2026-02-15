@@ -34,29 +34,19 @@ input,select{
     width:100%;
 }
 button{
-    padding:8px 15px;
+    padding:6px 12px;
     border:none;
-    border-radius:10px;
+    border-radius:8px;
     background:#2a5298;
     color:white;
     cursor:pointer;
 }
-button:hover{opacity:.9;}
 .card{
     background:#1f1f1f;
     color:white;
     padding:15px;
     border-radius:20px;
     margin-top:20px;
-    position:relative;
-}
-.delete-btn{
-    position:absolute;
-    top:10px;
-    right:15px;
-    cursor:pointer;
-    font-size:18px;
-    color:#ff4f4f;
 }
 table{
     width:100%;
@@ -108,15 +98,12 @@ th{background:#2a5298;}
 
 <input type="number" id="cantidad" placeholder="Cantidad personas">
 
-<button onclick="agregarServicio()">Agregar</button>
+<button onclick="agregarAsignacion()">Agregar</button>
 </div>
 
-<br>
-<button onclick="exportarExcel()">Exportar a Excel</button>
-
 <h3>Total Servicios Ingresados: $ <span id="totalServicios">0</span></h3>
-<h3>Total Servicios Distribuidos: $ <span id="totalDistribuido">0</span></h3>
-<div id="estado-cuadre"></div>
+<h3>Total Distribuido: $ <span id="totalDistribuido">0</span></h3>
+<div id="estado"></div>
 
 <div id="tarjetas"></div>
 
@@ -124,8 +111,8 @@ th{background:#2a5298;}
 
 <script>
 
-let datos = []
-let idCounter = 0
+let servicios = []
+let idServicio = 0
 
 function formatear(n){
     return Math.round(n).toLocaleString("es-CO")
@@ -136,7 +123,7 @@ function aproximarCien(valor){
     return Math.round(valor/100)*100
 }
 
-function agregarServicio(){
+function agregarAsignacion(){
 
     let nombre = servicio.value
     let valor = parseFloat(valorInput.value)
@@ -145,23 +132,30 @@ function agregarServicio(){
     let cantidad = parseFloat(cantidadInput.value)
 
     if(!valor || !fecha || !cantidad){
-        alert("Complete los datos")
+        alert("Complete datos")
         return
     }
 
-    datos.push({
-        id:idCounter++,
-        nombre,valor,fecha,rep,cantidad,
-        ajusteActivo:false,
-        nombreAjuste:"",
-        valorAjuste:0
-    })
+    let serv = servicios.find(s=>s.nombre===nombre)
 
+    if(!serv){
+        serv = {
+            id:idServicio++,
+            nombre,
+            valor,
+            fecha,
+            asignaciones:[]
+        }
+        servicios.push(serv)
+    }
+
+    serv.asignaciones.push({rep,cantidad})
     render()
 }
 
-function eliminarServicio(id){
-    datos = datos.filter(d=>d.id!==id)
+function eliminarAsignacion(servId,rep){
+    let serv = servicios.find(s=>s.id===servId)
+    serv.asignaciones = serv.asignaciones.filter(a=>a.rep!==rep)
     render()
 }
 
@@ -170,77 +164,69 @@ function render(){
     let contenedor = document.getElementById("tarjetas")
     contenedor.innerHTML=""
 
-    let reps = [...new Set(datos.map(d=>d.rep))]
-    let totalServicios=0
-    let totalDistribuido=0
+    let reps = [...new Set(servicios.flatMap(s=>s.asignaciones.map(a=>a.rep)))]
+
+    let totalServicios = servicios.reduce((a,b)=>a+b.valor,0)
+    let totalDistribuido = 0
 
     reps.forEach(rep=>{
-
-        let serviciosRep = datos.filter(d=>d.rep===rep)
 
         let card = document.createElement("div")
         card.className="card"
 
-        let html=`<div class="delete-btn" onclick="eliminarRepresentante('${rep}')">✖</div>
-        <h3>${rep}</h3>
+        let html=`<h3>${rep}</h3>
         <table>
         <tr>
         <th>Servicio</th>
         <th>Valor</th>
         <th>Personas</th>
         <th>Valor Distr</th>
+        <th></th>
         </tr>`
 
-        let totalPersona=0
+        let totalRep=0
 
-        serviciosRep.forEach(s=>{
+        servicios.forEach(s=>{
 
-            let totalPersonasServicio =
-                datos.filter(d=>d.nombre===s.nombre)
-                     .reduce((a,b)=>a+b.cantidad,0)
+            let asignacion = s.asignaciones.find(a=>a.rep===rep)
+            if(!asignacion) return
 
-            let valorUnitario = s.valor / totalPersonasServicio
-            let valorDistribuido = valorUnitario * s.cantidad
-            valorDistribuido = aproximarCien(valorDistribuido)
+            let totalPersonas = s.asignaciones.reduce((a,b)=>a+b.cantidad,0)
+            let unitario = s.valor / totalPersonas
+            let valorDistr = aproximarCien(unitario * asignacion.cantidad)
 
-            totalPersona += valorDistribuido + (s.ajusteActivo ? s.valorAjuste : 0)
-            totalServicios += s.valor
-            totalDistribuido += valorDistribuido + (s.ajusteActivo ? s.valorAjuste : 0)
+            totalRep += valorDistr
+            totalDistribuido += valorDistr
 
             html+=`
             <tr>
             <td>${s.nombre}</td>
             <td>$ ${formatear(s.valor)}</td>
-            <td>${s.cantidad}</td>
-            <td class="valor">$ ${formatear(valorDistribuido)}</td>
-            </tr>
-
-            <tr>
-            <td colspan="4">
-            <label>
-            <input type="checkbox"
-            onchange="toggleAjuste(${s.id},this.checked)">
-            Aplicar ajuste
-            </label>
-
-            <div id="ajuste-${s.id}" style="display:${s.ajusteActivo?'block':'none'}">
-            <input type="text" placeholder="Nombre ajuste"
-            onchange="cambiarNombreAjuste(${s.id},this.value)">
-            <input type="number" placeholder="Valor ajuste"
-            onchange="cambiarValorAjuste(${s.id},this.value)">
-            </div>
-
-            <button onclick="eliminarServicio(${s.id})">Eliminar</button>
-
-            </td>
-            </tr>
-            `
+            <td>${asignacion.cantidad}</td>
+            <td class="valor">$ ${formatear(valorDistr)}</td>
+            <td><button onclick="eliminarAsignacion(${s.id},'${rep}')">Quitar</button></td>
+            </tr>`
         })
 
-        html+=`</table>
+        html+=`</table>`
+
+        html+=`
         <div class="total">
-        Total a pagar: $ ${formatear(totalPersona)}
-        </div>`
+        <label>
+        <input type="checkbox" onchange="toggleAjuste('${rep}',this.checked)">
+        Aplicar ajuste
+        </label>
+        <div id="ajuste-${rep}" style="display:none">
+        <input type="text" placeholder="Nombre ajuste">
+        <input type="number" placeholder="Valor ajuste" 
+        oninput="actualizarAjuste('${rep}',this.value)">
+        </div>
+        </div>
+
+        <div class="total">
+        Total a pagar: $ <span id="total-${rep}">${formatear(totalRep)}</span>
+        </div>
+        `
 
         card.innerHTML=html
         contenedor.appendChild(card)
@@ -249,61 +235,30 @@ function render(){
     document.getElementById("totalServicios").innerText=formatear(totalServicios)
     document.getElementById("totalDistribuido").innerText=formatear(totalDistribuido)
 
-    validarCuadre(totalServicios,totalDistribuido)
+    validar(totalServicios,totalDistribuido)
 }
 
-function toggleAjuste(id,estado){
-    let item = datos.find(d=>d.id===id)
-    item.ajusteActivo = estado
+let ajustes = {}
+
+function toggleAjuste(rep,estado){
+    document.getElementById("ajuste-"+rep).style.display = estado?"block":"none"
+}
+
+function actualizarAjuste(rep,valor){
+    ajustes[rep] = parseFloat(valor)||0
     render()
 }
 
-function cambiarNombreAjuste(id,valor){
-    let item = datos.find(d=>d.id===id)
-    item.nombreAjuste = valor
-}
-
-function cambiarValorAjuste(id,valor){
-    let item = datos.find(d=>d.id===id)
-    item.valorAjuste = parseFloat(valor)||0
-    render()
-}
-
-function validarCuadre(totalServicios,totalDistribuido){
-    let estado = document.getElementById("estado-cuadre")
-    let diferencia = totalDistribuido-totalServicios
-    if(diferencia===0){
+function validar(totalS,totalD){
+    let estado = document.getElementById("estado")
+    let diff = totalD-totalS
+    if(diff===0){
         estado.innerHTML="✅ Cuadre Perfecto"
         estado.className="correcto"
     }else{
-        estado.innerHTML=`⚠ Diferencia: $ ${formatear(diferencia)}`
+        estado.innerHTML="⚠ Diferencia: $ "+formatear(diff)
         estado.className="error"
     }
-}
-
-function eliminarRepresentante(rep){
-    datos = datos.filter(d=>d.rep!==rep)
-    render()
-}
-
-function exportarExcel(){
-
-    let data=[]
-
-    datos.forEach(d=>{
-        data.push({
-            Representante:d.rep,
-            Servicio:d.nombre,
-            Valor_Total:d.valor,
-            Personas:d.cantidad,
-            Ajuste:d.ajusteActivo?d.valorAjuste:0
-        })
-    })
-
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Distribución")
-    XLSX.writeFile(wb,"distribucion_recibos.xlsx")
 }
 
 const servicio=document.getElementById("servicio")
