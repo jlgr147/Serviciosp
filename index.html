@@ -4,22 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Distribución de Recibos</title>
+
 <style>
 body{
 font-family:'Segoe UI',sans-serif;
-background:#f4f6f9;
+background:#f3f4f6;
 margin:0;
 padding:20px;
 }
+
 .container{max-width:1200px;margin:auto}
+
 .card{
-background:white;
+background:#111827;
+color:white;
 padding:20px;
-border-radius:15px;
-box-shadow:0 5px 15px rgba(0,0,0,0.08);
-margin-bottom:20px;
+border-radius:16px;
+box-shadow:0 8px 25px rgba(0,0,0,0.25);
+margin-bottom:25px;
 }
+
 h2{margin-top:40px}
+
 button{
 background:#2563eb;
 color:white;
@@ -28,7 +34,9 @@ padding:8px 15px;
 border-radius:8px;
 cursor:pointer;
 }
+
 button:hover{opacity:.9}
+
 input,select{
 padding:6px;
 border-radius:6px;
@@ -36,40 +44,50 @@ border:1px solid #ccc;
 width:100%;
 margin-top:5px;
 }
+
 table{
 width:100%;
 border-collapse:collapse;
 margin-top:10px;
 }
+
 th,td{
 padding:8px;
-border-bottom:1px solid #eee;
+border-bottom:1px solid #374151;
 text-align:center;
 font-size:14px;
 }
+
 .delete-btn{
-color:red;
+color:#ef4444;
 cursor:pointer;
-font-size:13px;
+font-size:14px;
 }
+
 .small-check{
 transform:scale(.8);
-margin-left:8px;
+margin-right:6px;
 }
+
 .summary{
+background:white;
+padding:20px;
+border-radius:15px;
 font-weight:bold;
-font-size:15px;
 }
+
 @media(max-width:768px){
 table{font-size:12px}
 }
 </style>
 </head>
+
 <body>
 <div class="container">
 
 <h2>Agregar Servicio</h2>
-<div class="card">
+<div class="card" style="background:white;color:black">
+
 <select id="serviceName">
 <option>Agua</option>
 <option>Internet claro</option>
@@ -80,6 +98,7 @@ table{font-size:12px}
 <option>Seguro</option>
 <option>Netfix - youtube</option>
 </select>
+
 <input type="number" id="serviceValue" placeholder="Valor del servicio">
 <input type="date" id="serviceDate">
 <button onclick="addService()">Agregar</button>
@@ -89,12 +108,14 @@ table{font-size:12px}
 <div id="representatives"></div>
 
 <h2>Resumen General</h2>
-<div class="card summary" id="summary"></div>
+<div class="summary" id="summary"></div>
 
 </div>
 
 <script>
+
 let services=[]
+
 let reps=[
 {nombre:"Jorge Garzón", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
 {nombre:"Jorge Balero", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
@@ -151,6 +172,7 @@ services.forEach((s,si)=>{
 if(rep.eliminado.includes(si)) return
 
 let personasTotales=0
+
 reps.forEach(r=>{
 if(!r.eliminado.includes(si)){
 personasTotales+=Math.round(r.personas)
@@ -177,37 +199,51 @@ tabla+=`
 
 tabla+="</table>"
 
-let ajusteHTML=`
-<div style="margin-top:15px">
-<label style="font-size:13px">
-<input type="checkbox" class="small-check" ${rep.ajustes.activo?"checked":""}
-onchange="toggleAjuste(${ri},this.checked)">
- Aplicar ajuste
-</label>
-<div id="ajuste-${ri}" style="display:${rep.ajustes.activo?"block":"none"};margin-top:10px">
-<input placeholder="Tipo de ajuste"
+let ajusteHTML=""
+
+if(rep.ajustes.activo){
+
+totalRep+=rep.ajustes.valor
+totalAjustes+=rep.ajustes.valor
+
+ajusteHTML=`
+<div style="margin-top:12px;background:#1f2937;padding:10px;border-radius:8px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<strong>Ajuste</strong>
+<span style="cursor:pointer;color:#ef4444" onclick="eliminarAjuste(${ri})">✖</span>
+</div>
+
+<input placeholder="Nombre del ajuste"
 value="${rep.ajustes.tipo}"
 oninput="setTipo(${ri},this.value)">
+
 <input type="number"
 placeholder="Valor ajuste"
 value="${rep.ajustes.valor}"
 oninput="setValor(${ri},this.value)">
 </div>
-</div>
 `
 
-let totalFinal=totalRep
+}else{
 
-if(rep.ajustes.activo){
-totalFinal+=rep.ajustes.valor
-totalAjustes+=rep.ajustes.valor
+ajusteHTML=`
+<div style="margin-top:12px">
+<label style="font-size:12px;color:#9ca3af">
+<input type="checkbox" class="small-check"
+onchange="toggleAjuste(${ri},this.checked)">
+ Aplicar ajuste
+</label>
+</div>
+`
 }
+
+let totalFinal=round100(totalRep)
 
 card.innerHTML=`
 <h3>${rep.nombre}</h3>
 ${tabla}
 ${ajusteHTML}
-<h4>Total a pagar: $${format(round100(totalFinal))}</h4>
+<h4 style="margin-top:15px">Total a pagar: $${format(totalFinal)}</h4>
 `
 
 container.appendChild(card)
@@ -233,6 +269,11 @@ reps[ri].ajustes.activo=estado
 render()
 }
 
+function eliminarAjuste(ri){
+reps[ri].ajustes={activo:false,tipo:"",valor:0}
+render()
+}
+
 function setTipo(ri,val){
 reps[ri].ajustes.tipo=val
 }
@@ -243,6 +284,7 @@ render()
 }
 
 render()
+
 </script>
 </body>
 </html>
