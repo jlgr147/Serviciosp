@@ -1,122 +1,213 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución de Recibos</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<title>Distribución Servicios</title>
+
 <style>
-*{box-sizing:border-box;font-family:'Poppins',sans-serif}
-body{margin:0;background:linear-gradient(135deg,#1e3c72,#2a5298);display:flex;justify-content:center;padding:30px}
-.app{background:#fff;width:100%;max-width:950px;border-radius:20px;padding:30px;box-shadow:0 20px 40px rgba(0,0,0,.2)}
-h1{text-align:center;margin-bottom:20px}
-.section{margin-bottom:30px}
-input,button{padding:12px;border-radius:10px;border:1px solid #ccc;font-size:14px}
-button{cursor:pointer;background:#2a5298;color:#fff;border:none;font-weight:600}
-button:hover{opacity:.9}
-.flex{display:flex;gap:10px;flex-wrap:wrap}
-.card{background:#f4f6fb;padding:15px;border-radius:15px;margin-bottom:10px;box-shadow:0 5px 15px rgba(0,0,0,.05)}
-.result{font-weight:700;margin-top:10px}
-.ok{color:green}
-.error{color:red}
-.badge{background:#2a5298;color:#fff;padding:5px 10px;border-radius:20px;font-size:12px}
+body{
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#1e3c72,#2a5298);
+    padding:20px;
+    display:flex;
+    justify-content:center;
+}
+.container{
+    background:white;
+    padding:25px;
+    border-radius:20px;
+    width:100%;
+    max-width:1100px;
+    box-shadow:0 15px 40px rgba(0,0,0,0.3);
+}
+h1{text-align:center;}
+
+input,select{
+    padding:8px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:10px;
+    background:#2a5298;
+    color:white;
+    cursor:pointer;
+}
+button:hover{opacity:0.9;}
+
+.card{
+    background:#1f1f1f;
+    color:white;
+    padding:20px;
+    border-radius:20px;
+    margin-top:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.4);
+}
+
+.card h3{
+    margin-bottom:10px;
+}
+
+.line{
+    display:flex;
+    justify-content:space-between;
+    margin:6px 0;
+}
+
+.valor{
+    color:#ff4fa3;
+    font-weight:bold;
+}
+
+.total{
+    margin-top:15px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+.fecha{
+    margin-top:10px;
+    font-size:14px;
+    color:#00ffb3;
+}
+
+.correcto{color:green;font-weight:bold;}
+.error{color:red;font-weight:bold;}
 </style>
 </head>
 <body>
-<div class="app">
-<h1>Distribución Inteligente de Recibos</h1><div class="section">
-<h3>1️⃣ Agregar Servicios</h3>
-<div class="flex">
-<input type="text" id="servicioNombre" placeholder="Nombre servicio (Ej: Luz)">
-<input type="number" id="servicioValor" placeholder="Valor">
+
+<div class="container">
+
+<h1>Distribución Dinámica</h1>
+
+<h3>Agregar Servicio</h3>
+
+<select id="servicio">
+<option>Agua</option>
+<option>Internet claro</option>
+<option>Internet Barbosa</option>
+<option>Gas</option>
+<option>Luz</option>
+<option>aseo</option>
+<option>Seguro</option>
+<option>Netfix - youtube</option>
+</select>
+
+<input type="number" id="valor" placeholder="Valor total servicio">
+<input type="number" id="cantidad" placeholder="Cantidad personas/pisos" step="0.01">
+<input type="date" id="fecha">
+
 <button onclick="agregarServicio()">Agregar</button>
+
+<label>
+<input type="checkbox" id="redondear"> Redondear al 100 más cercano
+</label>
+
+<h2>Tarjetas por Persona / Piso</h2>
+<div id="distribucion"></div>
+
+<h2>Total General: $ <span id="totalGeneral">0</span></h2>
+<div id="mensaje"></div>
+
 </div>
-<div id="listaServicios"></div>
-<div class="result" id="totalServicios">Total: $0</div>
-</div><div class="section">
-<h3>2️⃣ Agregar Pisos</h3>
-<div class="flex">
-<input type="text" id="pisoNombre" placeholder="Nombre piso (Ej: Piso 1)">
-<input type="number" id="pisoPersonas" placeholder="Cantidad personas">
-<button onclick="agregarPiso()">Agregar</button>
-</div>
-<div id="listaPisos"></div>
-<div class="result" id="totalPersonas">Total personas: 0</div>
-</div><div class="section">
-<label><input type="checkbox" id="redondear"> Redondear al 100 más cercano</label>
-<br><br>
-<button onclick="distribuir()">Distribuir</button>
-<div id="resultadoFinal" class="result"></div>
-</div><div id="distribucion"></div></div><script>
-let servicios=[];
-let pisos=[];
+
+<script>
+
+let servicios = [];
 
 function agregarServicio(){
- const nombre=document.getElementById('servicioNombre').value.trim();
- const valor=parseFloat(document.getElementById('servicioValor').value);
- if(!nombre||!valor)return;
- servicios.push({nombre,valor});
- document.getElementById('servicioNombre').value='';
- document.getElementById('servicioValor').value='';
- renderServicios();
-}
 
-function renderServicios(){
- const lista=document.getElementById('listaServicios');
- lista.innerHTML='';
- let total=0;
- servicios.forEach(s=>{
-  total+=s.valor;
-  lista.innerHTML+=`<div class='card'><span class='badge'>${s.nombre}</span> $${s.valor.toLocaleString()}</div>`;
- });
- document.getElementById('totalServicios').innerText='Total: $'+total.toLocaleString();
-}
+    let nombre = document.getElementById("servicio").value;
+    let valor = parseFloat(document.getElementById("valor").value);
+    let cantidad = parseFloat(document.getElementById("cantidad").value);
+    let fecha = document.getElementById("fecha").value;
 
-function agregarPiso(){
- const nombre=document.getElementById('pisoNombre').value.trim();
- const personas=parseInt(document.getElementById('pisoPersonas').value);
- if(!nombre||!personas)return;
- pisos.push({nombre,personas});
- document.getElementById('pisoNombre').value='';
- document.getElementById('pisoPersonas').value='';
- renderPisos();
-}
+    if(!valor || !cantidad || !fecha){
+        alert("Complete todos los campos");
+        return;
+    }
 
-function renderPisos(){
- const lista=document.getElementById('listaPisos');
- lista.innerHTML='';
- let total=0;
- pisos.forEach(p=>{
-  total+=p.personas;
-  lista.innerHTML+=`<div class='card'><span class='badge'>${p.nombre}</span> ${p.personas} personas</div>`;
- });
- document.getElementById('totalPersonas').innerText='Total personas: '+total;
+    servicios.push({nombre,valor,cantidad,fecha});
+    distribuir();
 }
 
 function distribuir(){
- let totalServicios=servicios.reduce((a,b)=>a+b.valor,0);
- let totalPersonas=pisos.reduce((a,b)=>a+b.personas,0);
- const redondear=document.getElementById('redondear').checked;
- const contenedor=document.getElementById('distribucion');
- contenedor.innerHTML='';
 
- if(totalPersonas===0||totalServicios===0){
-  document.getElementById('resultadoFinal').innerHTML="<span class='error'>Faltan datos para distribuir</span>";
-  return;
- }
+    let contenedor = document.getElementById("distribucion");
+    contenedor.innerHTML="";
+    let totalGeneral=0;
+    let sumaDistribuida=0;
 
- let sumaDistribuida=0;
- pisos.forEach(p=>{
-  let valor=(totalServicios/totalPersonas)*p.personas;
-  if(redondear)valor=Math.round(valor/100)*100;
-  sumaDistribuida+=valor;
-  contenedor.innerHTML+=`<div class='card'><h3>${p.nombre}</h3><p>$${valor.toLocaleString()}</p></div>`;
- });
+    servicios.forEach(s=>{
 
- if(sumaDistribuida===totalServicios){
-  document.getElementById('resultadoFinal').innerHTML="<span class='ok'>Distribución correcta ✅</span>";
- }else{
-  document.getElementById('resultadoFinal').innerHTML=`<span class='error'>Diferencia: $${(totalServicios-sumaDistribuida).toLocaleString()}</span>`;
- }
+        let valorPersona = s.valor / s.cantidad;
+
+        if(document.getElementById("redondear").checked){
+            valorPersona = Math.round(valorPersona/100)*100;
+        }
+
+        for(let i=1;i<=s.cantidad;i++){
+
+            let card = document.createElement("div");
+            card.className="card";
+
+            card.innerHTML=`
+            <h3>${s.nombre} - Persona/Piso ${i}</h3>
+
+            <div class="line">
+                <span>Valor general servicio</span>
+                <span class="valor">$ ${s.valor.toLocaleString()}</span>
+            </div>
+
+            <div class="line">
+                <span>C.Persona/Piso</span>
+                <span>${i}</span>
+            </div>
+
+            <div class="line">
+                <span>Valor por persona</span>
+                <span class="valor">$ ${valorPersona.toLocaleString()}</span>
+            </div>
+
+            <div class="line">
+                <span>Total servicio distribuido</span>
+                <span>$ ${(valorPersona*s.cantidad).toLocaleString()}</span>
+            </div>
+
+            <div class="total">
+                Total a pagar: $ ${valorPersona.toLocaleString()}
+            </div>
+
+            <div class="fecha">
+                Pagar antes de: ${s.fecha}
+            </div>
+            `;
+
+            contenedor.appendChild(card);
+
+            totalGeneral+=valorPersona;
+            sumaDistribuida+=valorPersona;
+        }
+    });
+
+    document.getElementById("totalGeneral").innerText=totalGeneral.toLocaleString();
+
+    let totalReal = servicios.reduce((a,b)=>a+b.valor,0);
+
+    if(totalReal === sumaDistribuida){
+        document.getElementById("mensaje").innerHTML="<div class='correcto'>Distribución correcta ✅</div>";
+    }else{
+        document.getElementById("mensaje").innerHTML="<div class='error'>Hay diferencia en la distribución ⚠</div>";
+    }
+
 }
-</script></body>
+
+</script>
+
+</body>
 </html>
