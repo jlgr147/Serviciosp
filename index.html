@@ -6,20 +6,20 @@
 <title>Distribución de Recibos</title>
 <style>
 body{
-font-family: 'Segoe UI', sans-serif;
+font-family:'Segoe UI',sans-serif;
 background:#f4f6f9;
 margin:0;
 padding:20px;
 }
-h2{margin-top:40px}
 .container{max-width:1200px;margin:auto}
 .card{
 background:white;
 padding:20px;
 border-radius:15px;
-box-shadow:0 5px 15px rgba(0,0,0,0.1);
+box-shadow:0 5px 15px rgba(0,0,0,0.08);
 margin-bottom:20px;
 }
+h2{margin-top:40px}
 button{
 background:#2563eb;
 color:white;
@@ -34,6 +34,7 @@ padding:6px;
 border-radius:6px;
 border:1px solid #ccc;
 width:100%;
+margin-top:5px;
 }
 table{
 width:100%;
@@ -44,20 +45,20 @@ th,td{
 padding:8px;
 border-bottom:1px solid #eee;
 text-align:center;
+font-size:14px;
 }
 .delete-btn{
 color:red;
 cursor:pointer;
-font-weight:bold;
-font-size:14px;
+font-size:13px;
 }
 .small-check{
 transform:scale(.8);
-margin-left:10px;
+margin-left:8px;
 }
 .summary{
 font-weight:bold;
-font-size:16px;
+font-size:15px;
 }
 @media(max-width:768px){
 table{font-size:12px}
@@ -95,10 +96,10 @@ table{font-size:12px}
 <script>
 let services=[]
 let reps=[
-{nombre:"Jorge Garzón", personas:1, aplica:{}, ajustes:[], eliminado:[]},
-{nombre:"Jorge Balero", personas:1, aplica:{}, ajustes:[], eliminado:[]},
-{nombre:"Arturo Castro", personas:1, aplica:{}, ajustes:[], eliminado:[]},
-{nombre:"Ismael Garzón", personas:1, aplica:{}, ajustes:[], eliminado:[]}
+{nombre:"Jorge Garzón", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
+{nombre:"Jorge Balero", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
+{nombre:"Arturo Castro", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
+{nombre:"Ismael Garzón", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]}
 ]
 
 function format(n){
@@ -114,16 +115,14 @@ let name=document.getElementById("serviceName").value
 let value=parseFloat(document.getElementById("serviceValue").value)
 let date=document.getElementById("serviceDate").value
 if(!value)return
-
 services.push({name,value,date})
 document.getElementById("serviceValue").value=""
 render()
 }
 
 function render(){
-let totalIngresado=0
-services.forEach(s=> totalIngresado+=s.value)
 
+let totalIngresado=services.reduce((a,b)=>a+b.value,0)
 let totalDistribuido=0
 let totalAjustes=0
 
@@ -131,12 +130,14 @@ let container=document.getElementById("representatives")
 container.innerHTML=""
 
 reps.forEach((rep,ri)=>{
+
 let card=document.createElement("div")
 card.className="card"
 
 let totalRep=0
 
-let table=`<table>
+let tabla=`
+<table>
 <tr>
 <th>Servicio</th>
 <th>Valor</th>
@@ -146,12 +147,17 @@ let table=`<table>
 </tr>`
 
 services.forEach((s,si)=>{
+
 if(rep.eliminado.includes(si)) return
 
 let personasTotales=0
 reps.forEach(r=>{
-if(!r.eliminado.includes(si)) personasTotales+=Math.round(r.personas)
+if(!r.eliminado.includes(si)){
+personasTotales+=Math.round(r.personas)
+}
 })
+
+if(personasTotales===0) return
 
 let unitario=s.value/personasTotales
 let valor=unitario*Math.round(rep.personas)
@@ -159,7 +165,7 @@ let valor=unitario*Math.round(rep.personas)
 totalRep+=valor
 totalDistribuido+=valor
 
-table+=`
+tabla+=`
 <tr>
 <td>${s.name}</td>
 <td>$${format(s.value)}</td>
@@ -169,41 +175,50 @@ table+=`
 </tr>`
 })
 
-table+="</table>"
+tabla+="</table>"
 
-let ajustesHTML=`<div style="margin-top:10px;">
-<label style="font-size:13px;">
-<input type="checkbox" class="small-check" onchange="toggleAjuste(${ri},this)">
+let ajusteHTML=`
+<div style="margin-top:15px">
+<label style="font-size:13px">
+<input type="checkbox" class="small-check" ${rep.ajustes.activo?"checked":""}
+onchange="toggleAjuste(${ri},this.checked)">
  Aplicar ajuste
 </label>
-<div id="ajuste-${ri}" style="display:none;margin-top:10px;">
-<input placeholder="Tipo de ajuste" onchange="setTipo(${ri},this.value)">
-<input type="number" placeholder="Valor ajuste" onchange="setValorAjuste(${ri},this.value)">
+<div id="ajuste-${ri}" style="display:${rep.ajustes.activo?"block":"none"};margin-top:10px">
+<input placeholder="Tipo de ajuste"
+value="${rep.ajustes.tipo}"
+oninput="setTipo(${ri},this.value)">
+<input type="number"
+placeholder="Valor ajuste"
+value="${rep.ajustes.valor}"
+oninput="setValor(${ri},this.value)">
 </div>
-</div>`
+</div>
+`
 
 let totalFinal=totalRep
-rep.ajustes.forEach(a=>{
-totalFinal+=a.valor
-totalAjustes+=a.valor
-})
+
+if(rep.ajustes.activo){
+totalFinal+=rep.ajustes.valor
+totalAjustes+=rep.ajustes.valor
+}
 
 card.innerHTML=`
 <h3>${rep.nombre}</h3>
-${table}
-${ajustesHTML}
+${tabla}
+${ajusteHTML}
 <h4>Total a pagar: $${format(round100(totalFinal))}</h4>
 `
 
 container.appendChild(card)
 })
 
-let diferencia= totalIngresado - totalDistribuido
+let diferencia=totalIngresado-totalDistribuido
 
 document.getElementById("summary").innerHTML=`
-Total servicios ingresados: $${format(totalIngresado)} <br>
-Total servicios distribuidos: $${format(totalDistribuido)} <br>
-Total ajustes: $${format(totalAjustes)} <br>
+Total servicios ingresados: $${format(totalIngresado)}<br>
+Total servicios distribuidos: $${format(totalDistribuido)}<br>
+Total ajustes: $${format(totalAjustes)}<br>
 Diferencia: $${format(diferencia)}
 `
 }
@@ -213,21 +228,17 @@ reps[ri].eliminado.push(si)
 render()
 }
 
-function toggleAjuste(ri,el){
-let div=document.getElementById("ajuste-"+ri)
-div.style.display=el.checked?"block":"none"
-if(!el.checked) reps[ri].ajustes=[]
+function toggleAjuste(ri,estado){
+reps[ri].ajustes.activo=estado
 render()
 }
 
 function setTipo(ri,val){
-if(!reps[ri].ajustes[0]) reps[ri].ajustes[0]={tipo:"",valor:0}
-reps[ri].ajustes[0].tipo=val
+reps[ri].ajustes.tipo=val
 }
 
-function setValorAjuste(ri,val){
-if(!reps[ri].ajustes[0]) reps[ri].ajustes[0]={tipo:"",valor:0}
-reps[ri].ajustes[0].valor=parseFloat(val)||0
+function setValor(ri,val){
+reps[ri].ajustes.valor=parseFloat(val)||0
 render()
 }
 
