@@ -59,7 +59,7 @@ th{background:#333;}
 .valorDistribuido{color:#00cec9;}
 .total{font-size:20px;font-weight:bold;color:#00ff99;}
 .fecha{color:red;font-weight:bold;}
-.x{color:red;cursor:pointer;font-size:12px;}
+.x{color:red;cursor:pointer;font-size:14px;margin-left:10px;}
 .resumen{margin-top:30px;padding:20px;background:#1e1e1e;border-radius:10px;}
 .correcto{color:#00ff99;}
 .error{color:red;}
@@ -90,7 +90,7 @@ th{background:#333;}
 </select>
 
 <input id="valorServicio" type="number" placeholder="Valor servicio">
-<input id="fechaPago" type="date">
+<input id="fechaPago" type="date" placeholder="Fecha límite">
 
 <div id="distribucionInputs"></div>
 
@@ -119,17 +119,35 @@ function formato(n){
  return "$"+Math.round(n).toLocaleString("es-CO");
 }
 
+function redondearArriba100(n){
+ return Math.ceil(n/100)*100;
+}
+
 function agregarResponsable(){
  const nombre=document.getElementById("nombreResp").value.trim();
  if(!nombre) return;
  responsables.push(nombre);
  document.getElementById("nombreResp").value="";
  renderResponsables();
+ renderTarjetas();
+}
+
+function eliminarResponsable(index){
+ let nombre=responsables[index];
+ responsables.splice(index,1);
+ delete ajustes[nombre];
+ servicios.forEach(s=>{
+   s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre);
+ });
+ renderResponsables();
+ renderTarjetas();
 }
 
 function renderResponsables(){
  let html="<ul>";
- responsables.forEach(r=> html+=`<li>${r}</li>`);
+ responsables.forEach((r,i)=> 
+  html+=`<li>${r} <span class="x" onclick="eliminarResponsable(${i})">x</span></li>`
+ );
  html+="</ul>";
  document.getElementById("listaResp").innerHTML=html;
 
@@ -159,18 +177,16 @@ function agregarServicio(){
 
  responsables.forEach((r,i)=>{
    let p=parseFloat(document.getElementById("dist_"+i).value)||0;
-   p=Math.round(p);
-
-   if(!Number.isInteger(p)){
-     alert("Las personas deben ser números enteros");
-     return;
-   }
-
    if(p>0){
      distribucion.push({responsable:r,personas:p});
      totalPersonas+=p;
    }
  });
+
+ if(!Number.isInteger(totalPersonas)){
+   alert("La suma total de personas debe ser un número entero");
+   return;
+ }
 
  if(totalPersonas===0){
    alert("Debe asignar personas");
@@ -249,7 +265,7 @@ function renderTarjetas(){
        <tr>
          <td>${s.nombre}</td>
          <td class="valorFactura">${formato(s.valor)}</td>
-         <td>${dist.personas}</td>
+         <td>${Math.round(dist.personas)}</td>
          <td class="valorDistribuido">${formato(valorDist)}</td>
          <td><span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span></td>
        </tr>`;
@@ -301,7 +317,7 @@ function renderTarjetas(){
        <button onclick="aplicarAjuste('${r}')">Agregar</button>
      </div>
 
-     <p class="total">Total a pagar: ${formato(Math.round(totalPersona/100)*100)}</p>
+     <p class="total">Total a pagar: ${formato(redondearArriba100(totalPersona))}</p>
    </div>`;
  });
 
