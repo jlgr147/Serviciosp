@@ -3,79 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución Profesional</title>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
+<title>Distribución de Recibos</title>
 <style>
 body{
-    font-family:'Segoe UI',sans-serif;
-    background:linear-gradient(135deg,#1e3c72,#2a5298);
-    margin:0;
-    padding:15px;
+font-family: 'Segoe UI', sans-serif;
+background:#f4f6f9;
+margin:0;
+padding:20px;
 }
-.container{
-    background:white;
-    padding:20px;
-    border-radius:20px;
-    max-width:1200px;
-    margin:auto;
-    box-shadow:0 15px 40px rgba(0,0,0,0.3);
-}
-.form-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:10px;
-}
-input,select{
-    padding:8px;
-    border-radius:8px;
-    border:1px solid #ccc;
-    width:100%;
+h2{margin-top:40px}
+.container{max-width:1200px;margin:auto}
+.card{
+background:white;
+padding:20px;
+border-radius:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+margin-bottom:20px;
 }
 button{
-    padding:6px 12px;
-    border:none;
-    border-radius:8px;
-    background:#2a5298;
-    color:white;
-    cursor:pointer;
+background:#2563eb;
+color:white;
+border:none;
+padding:8px 15px;
+border-radius:8px;
+cursor:pointer;
 }
-.card{
-    background:#1f1f1f;
-    color:white;
-    padding:15px;
-    border-radius:20px;
-    margin-top:20px;
+button:hover{opacity:.9}
+input,select{
+padding:6px;
+border-radius:6px;
+border:1px solid #ccc;
+width:100%;
 }
 table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:10px;
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
 }
 th,td{
-    padding:6px;
-    text-align:center;
-    font-size:14px;
+padding:8px;
+border-bottom:1px solid #eee;
+text-align:center;
 }
-th{background:#2a5298;}
-.valor{color:#ff4fa3;font-weight:bold;}
-.total{margin-top:10px;font-weight:bold;}
-.correcto{color:green;font-weight:bold;}
-.error{color:red;font-weight:bold;}
+.delete-btn{
+color:red;
+cursor:pointer;
+font-weight:bold;
+font-size:14px;
+}
+.small-check{
+transform:scale(.8);
+margin-left:10px;
+}
+.summary{
+font-weight:bold;
+font-size:16px;
+}
 @media(max-width:768px){
-    table{font-size:12px;}
+table{font-size:12px}
 }
 </style>
 </head>
 <body>
-
 <div class="container">
 
 <h2>Agregar Servicio</h2>
-
-<div class="form-grid">
-<select id="servicio">
+<div class="card">
+<select id="serviceName">
 <option>Agua</option>
 <option>Internet claro</option>
 <option>Internet Barbosa</option>
@@ -85,189 +79,159 @@ th{background:#2a5298;}
 <option>Seguro</option>
 <option>Netfix - youtube</option>
 </select>
-
-<input type="number" id="valor" placeholder="Valor total servicio">
-<input type="date" id="fecha">
-
-<select id="representante">
-<option>Jorge Garzón</option>
-<option>Jorge Balero</option>
-<option>Arturo Castro</option>
-<option>Ismael Garzón</option>
-</select>
-
-<input type="number" id="cantidad" placeholder="Cantidad personas">
-
-<button onclick="agregarAsignacion()">Agregar</button>
+<input type="number" id="serviceValue" placeholder="Valor del servicio">
+<input type="date" id="serviceDate">
+<button onclick="addService()">Agregar</button>
 </div>
 
-<h3>Total Servicios Ingresados: $ <span id="totalServicios">0</span></h3>
-<h3>Total Distribuido: $ <span id="totalDistribuido">0</span></h3>
-<div id="estado"></div>
+<h2>Representantes</h2>
+<div id="representatives"></div>
 
-<div id="tarjetas"></div>
+<h2>Resumen General</h2>
+<div class="card summary" id="summary"></div>
 
 </div>
 
 <script>
+let services=[]
+let reps=[
+{nombre:"Jorge Garzón", personas:1, aplica:{}, ajustes:[], eliminado:[]},
+{nombre:"Jorge Balero", personas:1, aplica:{}, ajustes:[], eliminado:[]},
+{nombre:"Arturo Castro", personas:1, aplica:{}, ajustes:[], eliminado:[]},
+{nombre:"Ismael Garzón", personas:1, aplica:{}, ajustes:[], eliminado:[]}
+]
 
-let servicios = []
-let idServicio = 0
-
-function formatear(n){
-    return Math.round(n).toLocaleString("es-CO")
+function format(n){
+return Math.round(n).toLocaleString("es-CO")
 }
 
-function aproximarCien(valor){
-    if(valor % 100 === 0) return valor
-    return Math.round(valor/100)*100
+function round100(n){
+return Math.ceil(n/100)*100
 }
 
-function agregarAsignacion(){
+function addService(){
+let name=document.getElementById("serviceName").value
+let value=parseFloat(document.getElementById("serviceValue").value)
+let date=document.getElementById("serviceDate").value
+if(!value)return
 
-    let nombre = servicio.value
-    let valor = parseFloat(valorInput.value)
-    let fecha = fechaInput.value
-    let rep = representante.value
-    let cantidad = parseFloat(cantidadInput.value)
-
-    if(!valor || !fecha || !cantidad){
-        alert("Complete datos")
-        return
-    }
-
-    let serv = servicios.find(s=>s.nombre===nombre)
-
-    if(!serv){
-        serv = {
-            id:idServicio++,
-            nombre,
-            valor,
-            fecha,
-            asignaciones:[]
-        }
-        servicios.push(serv)
-    }
-
-    serv.asignaciones.push({rep,cantidad})
-    render()
-}
-
-function eliminarAsignacion(servId,rep){
-    let serv = servicios.find(s=>s.id===servId)
-    serv.asignaciones = serv.asignaciones.filter(a=>a.rep!==rep)
-    render()
+services.push({name,value,date})
+document.getElementById("serviceValue").value=""
+render()
 }
 
 function render(){
+let totalIngresado=0
+services.forEach(s=> totalIngresado+=s.value)
 
-    let contenedor = document.getElementById("tarjetas")
-    contenedor.innerHTML=""
+let totalDistribuido=0
+let totalAjustes=0
 
-    let reps = [...new Set(servicios.flatMap(s=>s.asignaciones.map(a=>a.rep)))]
+let container=document.getElementById("representatives")
+container.innerHTML=""
 
-    let totalServicios = servicios.reduce((a,b)=>a+b.valor,0)
-    let totalDistribuido = 0
+reps.forEach((rep,ri)=>{
+let card=document.createElement("div")
+card.className="card"
 
-    reps.forEach(rep=>{
+let totalRep=0
 
-        let card = document.createElement("div")
-        card.className="card"
+let table=`<table>
+<tr>
+<th>Servicio</th>
+<th>Valor</th>
+<th>Personas</th>
+<th>Valor Distr</th>
+<th></th>
+</tr>`
 
-        let html=`<h3>${rep}</h3>
-        <table>
-        <tr>
-        <th>Servicio</th>
-        <th>Valor</th>
-        <th>Personas</th>
-        <th>Valor Distr</th>
-        <th></th>
-        </tr>`
+services.forEach((s,si)=>{
+if(rep.eliminado.includes(si)) return
 
-        let totalRep=0
+let personasTotales=0
+reps.forEach(r=>{
+if(!r.eliminado.includes(si)) personasTotales+=Math.round(r.personas)
+})
 
-        servicios.forEach(s=>{
+let unitario=s.value/personasTotales
+let valor=unitario*Math.round(rep.personas)
 
-            let asignacion = s.asignaciones.find(a=>a.rep===rep)
-            if(!asignacion) return
+totalRep+=valor
+totalDistribuido+=valor
 
-            let totalPersonas = s.asignaciones.reduce((a,b)=>a+b.cantidad,0)
-            let unitario = s.valor / totalPersonas
-            let valorDistr = aproximarCien(unitario * asignacion.cantidad)
+table+=`
+<tr>
+<td>${s.name}</td>
+<td>$${format(s.value)}</td>
+<td>${Math.round(rep.personas)}</td>
+<td>$${format(valor)}</td>
+<td><span class="delete-btn" onclick="removeService(${ri},${si})">✖</span></td>
+</tr>`
+})
 
-            totalRep += valorDistr
-            totalDistribuido += valorDistr
+table+="</table>"
 
-            html+=`
-            <tr>
-            <td>${s.nombre}</td>
-            <td>$ ${formatear(s.valor)}</td>
-            <td>${asignacion.cantidad}</td>
-            <td class="valor">$ ${formatear(valorDistr)}</td>
-            <td><button onclick="eliminarAsignacion(${s.id},'${rep}')">Quitar</button></td>
-            </tr>`
-        })
+let ajustesHTML=`<div style="margin-top:10px;">
+<label style="font-size:13px;">
+<input type="checkbox" class="small-check" onchange="toggleAjuste(${ri},this)">
+ Aplicar ajuste
+</label>
+<div id="ajuste-${ri}" style="display:none;margin-top:10px;">
+<input placeholder="Tipo de ajuste" onchange="setTipo(${ri},this.value)">
+<input type="number" placeholder="Valor ajuste" onchange="setValorAjuste(${ri},this.value)">
+</div>
+</div>`
 
-        html+=`</table>`
+let totalFinal=totalRep
+rep.ajustes.forEach(a=>{
+totalFinal+=a.valor
+totalAjustes+=a.valor
+})
 
-        html+=`
-        <div class="total">
-        <label>
-        <input type="checkbox" onchange="toggleAjuste('${rep}',this.checked)">
-        Aplicar ajuste
-        </label>
-        <div id="ajuste-${rep}" style="display:none">
-        <input type="text" placeholder="Nombre ajuste">
-        <input type="number" placeholder="Valor ajuste" 
-        oninput="actualizarAjuste('${rep}',this.value)">
-        </div>
-        </div>
+card.innerHTML=`
+<h3>${rep.nombre}</h3>
+${table}
+${ajustesHTML}
+<h4>Total a pagar: $${format(round100(totalFinal))}</h4>
+`
 
-        <div class="total">
-        Total a pagar: $ <span id="total-${rep}">${formatear(totalRep)}</span>
-        </div>
-        `
+container.appendChild(card)
+})
 
-        card.innerHTML=html
-        contenedor.appendChild(card)
-    })
+let diferencia= totalIngresado - totalDistribuido
 
-    document.getElementById("totalServicios").innerText=formatear(totalServicios)
-    document.getElementById("totalDistribuido").innerText=formatear(totalDistribuido)
-
-    validar(totalServicios,totalDistribuido)
+document.getElementById("summary").innerHTML=`
+Total servicios ingresados: $${format(totalIngresado)} <br>
+Total servicios distribuidos: $${format(totalDistribuido)} <br>
+Total ajustes: $${format(totalAjustes)} <br>
+Diferencia: $${format(diferencia)}
+`
 }
 
-let ajustes = {}
-
-function toggleAjuste(rep,estado){
-    document.getElementById("ajuste-"+rep).style.display = estado?"block":"none"
+function removeService(ri,si){
+reps[ri].eliminado.push(si)
+render()
 }
 
-function actualizarAjuste(rep,valor){
-    ajustes[rep] = parseFloat(valor)||0
-    render()
+function toggleAjuste(ri,el){
+let div=document.getElementById("ajuste-"+ri)
+div.style.display=el.checked?"block":"none"
+if(!el.checked) reps[ri].ajustes=[]
+render()
 }
 
-function validar(totalS,totalD){
-    let estado = document.getElementById("estado")
-    let diff = totalD-totalS
-    if(diff===0){
-        estado.innerHTML="✅ Cuadre Perfecto"
-        estado.className="correcto"
-    }else{
-        estado.innerHTML="⚠ Diferencia: $ "+formatear(diff)
-        estado.className="error"
-    }
+function setTipo(ri,val){
+if(!reps[ri].ajustes[0]) reps[ri].ajustes[0]={tipo:"",valor:0}
+reps[ri].ajustes[0].tipo=val
 }
 
-const servicio=document.getElementById("servicio")
-const valorInput=document.getElementById("valor")
-const fechaInput=document.getElementById("fecha")
-const representante=document.getElementById("representante")
-const cantidadInput=document.getElementById("cantidad")
+function setValorAjuste(ri,val){
+if(!reps[ri].ajustes[0]) reps[ri].ajustes[0]={tipo:"",valor:0}
+reps[ri].ajustes[0].valor=parseFloat(val)||0
+render()
+}
 
+render()
 </script>
-
 </body>
 </html>
