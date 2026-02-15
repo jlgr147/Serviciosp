@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Distribución Profesional</title>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
 body{
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#1e3c72,#2a5298);
-    padding:15px;
+    font-family:'Segoe UI',sans-serif;
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
     margin:0;
+    padding:15px;
 }
 .container{
     background:white;
@@ -20,11 +22,15 @@ body{
     margin:auto;
     box-shadow:0 15px 40px rgba(0,0,0,0.3);
 }
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:10px;
+}
 input,select{
     padding:8px;
     border-radius:8px;
     border:1px solid #ccc;
-    margin:5px 0;
     width:100%;
 }
 button{
@@ -34,61 +40,41 @@ button{
     background:#2a5298;
     color:white;
     cursor:pointer;
-    margin-top:5px;
 }
-button:hover{opacity:0.9;}
-
-.form-grid{
-    display:grid;
-    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
-    gap:10px;
-}
-
+button:hover{opacity:.9;}
 .card{
     background:#1f1f1f;
     color:white;
     padding:15px;
     border-radius:20px;
     margin-top:20px;
-    overflow-x:auto;
+    position:relative;
 }
-
+.delete-btn{
+    position:absolute;
+    top:10px;
+    right:15px;
+    cursor:pointer;
+    font-size:18px;
+    color:#ff4f4f;
+}
 table{
     width:100%;
     border-collapse:collapse;
     margin-top:10px;
 }
-
 th,td{
     padding:6px;
     text-align:center;
     font-size:14px;
 }
-
-th{
-    background:#2a5298;
-}
-
-.valor{
-    color:#ff4fa3;
-    font-weight:bold;
-}
-
-.total{
-    margin-top:10px;
-    font-weight:bold;
-}
-
-.fecha{
-    color:#00ffb3;
-    font-size:13px;
-}
-
+th{background:#2a5298;}
+.valor{color:#ff4fa3;font-weight:bold;}
+.total{margin-top:10px;font-weight:bold;}
 .correcto{color:green;font-weight:bold;}
 .error{color:red;font-weight:bold;}
-
-@media(max-width:600px){
-    th,td{font-size:12px;}
+@media(max-width:768px){
+    table{font-size:12px;}
 }
 </style>
 </head>
@@ -120,149 +106,211 @@ th{
 <option>Ismael Garzón</option>
 </select>
 
-<input type="number" id="cantidad" placeholder="Cantidad personas que asume">
+<input type="number" id="cantidad" placeholder="Cantidad personas">
 
 <button onclick="agregarServicio()">Agregar</button>
 </div>
 
-<label>
-<input type="checkbox" id="redondear"> Redondear al 100 más cercano
-</label>
+<br>
+<button onclick="exportarExcel()">Exportar a Excel</button>
+
+<h3>Total Servicios Ingresados: $ <span id="totalServicios">0</span></h3>
+<h3>Total Servicios Distribuidos: $ <span id="totalDistribuido">0</span></h3>
+<div id="estado-cuadre"></div>
 
 <div id="tarjetas"></div>
-
-<h3>Total General Servicios: $ <span id="totalGeneral">0</span></h3>
-<div id="mensaje"></div>
 
 </div>
 
 <script>
 
-let datos = [];
+let datos = []
+let idCounter = 0
 
-function formato(n){
-    return Math.round(n).toLocaleString("es-CO");
+function formatear(n){
+    return Math.round(n).toLocaleString("es-CO")
+}
+
+function aproximarCien(valor){
+    if(valor % 100 === 0) return valor
+    return Math.round(valor/100)*100
 }
 
 function agregarServicio(){
 
-    let nombre = servicio.value;
-    let valor = parseFloat(valorInput.value);
-    let fecha = fechaInput.value;
-    let rep = representante.value;
-    let cantidad = parseFloat(cantidadInput.value);
+    let nombre = servicio.value
+    let valor = parseFloat(valorInput.value)
+    let fecha = fechaInput.value
+    let rep = representante.value
+    let cantidad = parseFloat(cantidadInput.value)
 
     if(!valor || !fecha || !cantidad){
-        alert("Complete los datos");
-        return;
+        alert("Complete los datos")
+        return
     }
 
-    datos.push({nombre,valor,fecha,rep,cantidad});
-    render();
+    datos.push({
+        id:idCounter++,
+        nombre,valor,fecha,rep,cantidad,
+        ajusteActivo:false,
+        nombreAjuste:"",
+        valorAjuste:0
+    })
+
+    render()
 }
 
-const servicio = document.getElementById("servicio");
-const valorInput = document.getElementById("valor");
-const fechaInput = document.getElementById("fecha");
-const representante = document.getElementById("representante");
-const cantidadInput = document.getElementById("cantidad");
-const redondear = document.getElementById("redondear");
+function eliminarServicio(id){
+    datos = datos.filter(d=>d.id!==id)
+    render()
+}
 
 function render(){
 
-    let contenedor = document.getElementById("tarjetas");
-    contenedor.innerHTML="";
+    let contenedor = document.getElementById("tarjetas")
+    contenedor.innerHTML=""
 
-    let serviciosUnicos = [...new Set(datos.map(d=>d.nombre))];
-
-    let totalReal = 0;
-    let totalDistribuido = 0;
-
-    let reps = [...new Set(datos.map(d=>d.rep))];
+    let reps = [...new Set(datos.map(d=>d.rep))]
+    let totalServicios=0
+    let totalDistribuido=0
 
     reps.forEach(rep=>{
 
-        let serviciosRep = datos.filter(d=>d.rep===rep);
+        let serviciosRep = datos.filter(d=>d.rep===rep)
 
-        let card = document.createElement("div");
-        card.className="card";
+        let card = document.createElement("div")
+        card.className="card"
 
-        let html=`<h3>${rep}</h3>
+        let html=`<div class="delete-btn" onclick="eliminarRepresentante('${rep}')">✖</div>
+        <h3>${rep}</h3>
         <table>
         <tr>
         <th>Servicio</th>
-        <th>Valor General</th>
+        <th>Valor</th>
         <th>Personas</th>
         <th>Valor Distr</th>
-        </tr>`;
+        </tr>`
 
-        let totalPersona=0;
-        let fechaMasCercana=null;
+        let totalPersona=0
 
         serviciosRep.forEach(s=>{
 
-            // Total personas que aplican a este servicio
             let totalPersonasServicio =
                 datos.filter(d=>d.nombre===s.nombre)
-                     .reduce((a,b)=>a+b.cantidad,0);
+                     .reduce((a,b)=>a+b.cantidad,0)
 
-            let valorUnitario = s.valor / totalPersonasServicio;
+            let valorUnitario = s.valor / totalPersonasServicio
+            let valorDistribuido = valorUnitario * s.cantidad
+            valorDistribuido = aproximarCien(valorDistribuido)
 
-            if(redondear.checked){
-                valorUnitario = Math.round(valorUnitario/100)*100;
-            }
-
-            let valorDistribuido = valorUnitario * s.cantidad;
+            totalPersona += valorDistribuido + (s.ajusteActivo ? s.valorAjuste : 0)
+            totalServicios += s.valor
+            totalDistribuido += valorDistribuido + (s.ajusteActivo ? s.valorAjuste : 0)
 
             html+=`
             <tr>
             <td>${s.nombre}</td>
-            <td>$ ${formato(s.valor)}</td>
+            <td>$ ${formatear(s.valor)}</td>
             <td>${s.cantidad}</td>
-            <td class="valor">$ ${formato(valorDistribuido)}</td>
-            </tr>`;
+            <td class="valor">$ ${formatear(valorDistribuido)}</td>
+            </tr>
 
-            totalPersona+=valorDistribuido;
-            totalReal+=s.valor;
-            totalDistribuido+=valorDistribuido;
+            <tr>
+            <td colspan="4">
+            <label>
+            <input type="checkbox"
+            onchange="toggleAjuste(${s.id},this.checked)">
+            Aplicar ajuste
+            </label>
 
-            if(!fechaMasCercana || s.fecha < fechaMasCercana){
-                fechaMasCercana=s.fecha;
-            }
-        });
+            <div id="ajuste-${s.id}" style="display:${s.ajusteActivo?'block':'none'}">
+            <input type="text" placeholder="Nombre ajuste"
+            onchange="cambiarNombreAjuste(${s.id},this.value)">
+            <input type="number" placeholder="Valor ajuste"
+            onchange="cambiarValorAjuste(${s.id},this.value)">
+            </div>
 
-        html+=`</table>`;
+            <button onclick="eliminarServicio(${s.id})">Eliminar</button>
 
-        html+=`
+            </td>
+            </tr>
+            `
+        })
+
+        html+=`</table>
         <div class="total">
-        Nombre ajuste:
-        <input type="text" placeholder="Ej: Saldo anterior">
-        Valor ajuste:
-        <input type="number" value="0" onchange="render()">
-        </div>`;
+        Total a pagar: $ ${formatear(totalPersona)}
+        </div>`
 
-        html+=`
-        <div class="total">
-        Total a pagar: $ ${formato(totalPersona)}
-        </div>`;
+        card.innerHTML=html
+        contenedor.appendChild(card)
+    })
 
-        html+=`
-        <div class="fecha">
-        Pagar antes de: ${fechaMasCercana || ""}
-        </div>`;
+    document.getElementById("totalServicios").innerText=formatear(totalServicios)
+    document.getElementById("totalDistribuido").innerText=formatear(totalDistribuido)
 
-        card.innerHTML=html;
-        contenedor.appendChild(card);
-    });
+    validarCuadre(totalServicios,totalDistribuido)
+}
 
-    document.getElementById("totalGeneral").innerText=formato(totalReal);
+function toggleAjuste(id,estado){
+    let item = datos.find(d=>d.id===id)
+    item.ajusteActivo = estado
+    render()
+}
 
-    if(Math.round(totalReal) === Math.round(totalDistribuido)){
-        mensaje.innerHTML="<div class='correcto'>Distribución correcta ✅</div>";
+function cambiarNombreAjuste(id,valor){
+    let item = datos.find(d=>d.id===id)
+    item.nombreAjuste = valor
+}
+
+function cambiarValorAjuste(id,valor){
+    let item = datos.find(d=>d.id===id)
+    item.valorAjuste = parseFloat(valor)||0
+    render()
+}
+
+function validarCuadre(totalServicios,totalDistribuido){
+    let estado = document.getElementById("estado-cuadre")
+    let diferencia = totalDistribuido-totalServicios
+    if(diferencia===0){
+        estado.innerHTML="✅ Cuadre Perfecto"
+        estado.className="correcto"
     }else{
-        mensaje.innerHTML="<div class='error'>Hay diferencia ⚠</div>";
+        estado.innerHTML=`⚠ Diferencia: $ ${formatear(diferencia)}`
+        estado.className="error"
     }
 }
+
+function eliminarRepresentante(rep){
+    datos = datos.filter(d=>d.rep!==rep)
+    render()
+}
+
+function exportarExcel(){
+
+    let data=[]
+
+    datos.forEach(d=>{
+        data.push({
+            Representante:d.rep,
+            Servicio:d.nombre,
+            Valor_Total:d.valor,
+            Personas:d.cantidad,
+            Ajuste:d.ajusteActivo?d.valorAjuste:0
+        })
+    })
+
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Distribución")
+    XLSX.writeFile(wb,"distribucion_recibos.xlsx")
+}
+
+const servicio=document.getElementById("servicio")
+const valorInput=document.getElementById("valor")
+const fechaInput=document.getElementById("fecha")
+const representante=document.getElementById("representante")
+const cantidadInput=document.getElementById("cantidad")
 
 </script>
 
