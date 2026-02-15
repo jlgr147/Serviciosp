@@ -7,342 +7,320 @@
 
 <style>
 body{
-    font-family: Arial, sans-serif;
-    background:#f4f6f9;
-    margin:20px;
+  background:#111;
+  color:#fff;
+  font-family:Arial, sans-serif;
+  margin:0;
+  padding:20px;
 }
 
-.section{
-    background:#fff;
-    padding:15px;
-    border-radius:8px;
-    margin-bottom:20px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
+h2{margin-top:40px;}
 
-input,button{
-    padding:6px;
-    margin:5px 0;
+input, select{
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  margin:4px;
+  width:100%;
 }
 
 button{
-    cursor:pointer;
-}
-
-.tarjetas{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-    gap:15px;
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#00b894;
+  color:white;
 }
 
 .card{
-    background:#1e1e1e;
-    color:#fff;
-    padding:15px;
-    border-radius:10px;
+  background:#1e1e1e;
+  padding:20px;
+  margin-top:20px;
+  border-radius:12px;
+  box-shadow:0 0 15px rgba(0,0,0,0.5);
 }
 
-.factura{
-    color:#ffb74d;
+table{
+  width:100%;
+  margin-top:10px;
+  border-collapse:collapse;
 }
 
-.distribuido{
-    color:#4fc3f7;
+th,td{
+  padding:6px;
+  text-align:center;
+  font-size:14px;
 }
 
-.total{
-    font-weight:bold;
-    font-size:18px;
-    color:#4caf50;
-}
+th{background:#333;}
 
-.x{
-    color:red;
-    cursor:pointer;
-    font-weight:bold;
-    margin-left:6px;
-}
+.valorFactura{color:#aaa;}
+.valorDistribuido{color:#00cec9;}
+.total{font-size:20px;font-weight:bold;color:#00ff99;}
+.fecha{color:red;font-weight:bold;}
+.x{color:red;cursor:pointer;font-size:12px;}
+.resumen{margin-top:30px;padding:20px;background:#1e1e1e;border-radius:10px;}
+.correcto{color:#00ff99;}
+.error{color:red;}
 
-.check{
-    transform:scale(0.8);
-}
-
-.resumen{
-    background:#e8f5e9;
-    padding:15px;
-    border-radius:8px;
-    font-weight:bold;
-}
-.diferencia{
-    color:red;
+@media(max-width:768px){
+  table{font-size:12px;}
 }
 </style>
 </head>
 <body>
 
+<h2>Agregar Responsable</h2>
+<input id="nombreResp" placeholder="Nombre responsable">
+<button onclick="agregarResponsable()">Agregar</button>
+<div id="listaResp"></div>
+
 <h2>Agregar Servicio</h2>
-<div class="section">
-    Servicio:
-    <input type="text" id="servicioNombre">
-    Valor:
-    <input type="number" id="servicioValor">
-    Fecha límite:
-    <input type="date" id="servicioFecha">
-    <button onclick="agregarServicio()">Agregar</button>
-</div>
+
+<select id="servicio">
+<option>Agua</option>
+<option>Internet claro</option>
+<option>Internet Barbosa</option>
+<option>Gas</option>
+<option>Luz</option>
+<option>Aseo</option>
+<option>Seguro</option>
+<option>Netflix - YouTube</option>
+</select>
+
+<input id="valorServicio" type="number" placeholder="Valor servicio">
+<input id="fechaPago" type="date">
+
+<div id="distribucionInputs"></div>
+
+<button onclick="agregarServicio()">Agregar Servicio</button>
 
 <h2>Servicios Acumulados</h2>
-<div class="section" id="serviciosLista"></div>
+<div id="listaServicios"></div>
 
-<h2>Agregar Responsable</h2>
-<div class="section">
-    Nombre:
-    <input type="text" id="responsableNombre">
-    <button onclick="agregarResponsable()">Agregar</button>
+<div id="tarjetas"></div>
+
+<div class="resumen">
+<h3>Resumen General</h3>
+<p>Total Servicios Ingresados: <span id="totalFactura">$0</span></p>
+<p>Total Distribuido: <span id="totalDistribuido">$0</span></p>
+<p>Total Ajustes: <span id="totalAjustes">$0</span></p>
+<p id="validacion"></p>
 </div>
-
-<h2>Tarjetas</h2>
-<div class="tarjetas" id="tarjetas"></div>
-
-<h2>Resumen</h2>
-<div class="resumen" id="resumen"></div>
 
 <script>
 
-let servicios = [];
-let responsables = [];
+let responsables=[];
+let servicios=[];
+let ajustes={};
 
-function money(n){
-    return Number(n).toLocaleString("es-CO");
-}
-
-function agregarServicio(){
-    let nombre = document.getElementById("servicioNombre").value.trim().toLowerCase();
-    let valor = parseFloat(document.getElementById("servicioValor").value);
-    let fecha = document.getElementById("servicioFecha").value;
-
-    if(!nombre || !valor || !fecha){
-        alert("Complete todos los campos");
-        return;
-    }
-
-    if(servicios.some(s=>s.nombre===nombre)){
-        alert("Ese servicio ya existe");
-        return;
-    }
-
-    servicios.push({nombre,valor,fecha});
-    renderServicios();
-    renderTarjetas();
-}
-
-function eliminarServicio(nombre){
-    servicios = servicios.filter(s=>s.nombre!==nombre);
-
-    responsables.forEach(r=>{
-        delete r.personas[nombre];
-    });
-
-    renderServicios();
-    renderTarjetas();
-}
-
-function renderServicios(){
-    let div = document.getElementById("serviciosLista");
-    div.innerHTML="";
-
-    servicios.forEach(s=>{
-        div.innerHTML += `
-        <div>
-            ${s.nombre.toUpperCase()} - $${money(s.valor)}
-            <span class="x" onclick="eliminarServicio('${s.nombre}')">❌</span>
-        </div>`;
-    });
+function formato(n){
+ return "$"+Math.round(n).toLocaleString("es-CO");
 }
 
 function agregarResponsable(){
-    let nombre = document.getElementById("responsableNombre").value.trim();
-    if(!nombre) return;
+ const nombre=document.getElementById("nombreResp").value.trim();
+ if(!nombre) return;
+ responsables.push(nombre);
+ document.getElementById("nombreResp").value="";
+ renderResponsables();
+}
 
-    responsables.push({
-        nombre,
-        personas:{},
-        ajustes:[]
-    });
+function renderResponsables(){
+ let html="<ul>";
+ responsables.forEach(r=> html+=`<li>${r}</li>`);
+ html+="</ul>";
+ document.getElementById("listaResp").innerHTML=html;
 
-    renderTarjetas();
+ let inputs="";
+ responsables.forEach((r,i)=>{
+   inputs+=`${r}: 
+   <input type="number" step="any" id="dist_${i}" placeholder="Personas que aplican"><br>`;
+ });
+ document.getElementById("distribucionInputs").innerHTML=inputs;
+}
+
+function agregarServicio(){
+
+ const nombre=document.getElementById("servicio").value;
+ const valor=parseFloat(document.getElementById("valorServicio").value)||0;
+ const fecha=document.getElementById("fechaPago").value;
+
+ if(servicios.some(s=>s.nombre===nombre)){
+   alert("Ese servicio ya fue ingresado");
+   return;
+ }
+
+ if(valor<=0 || !fecha) return;
+
+ let totalPersonas=0;
+ let distribucion=[];
+
+ responsables.forEach((r,i)=>{
+   let p=parseFloat(document.getElementById("dist_"+i).value)||0;
+   p=Math.round(p);
+
+   if(!Number.isInteger(p)){
+     alert("Las personas deben ser números enteros");
+     return;
+   }
+
+   if(p>0){
+     distribucion.push({responsable:r,personas:p});
+     totalPersonas+=p;
+   }
+ });
+
+ if(totalPersonas===0){
+   alert("Debe asignar personas");
+   return;
+ }
+
+ servicios.push({nombre,valor,fecha,distribucion,totalPersonas});
+ renderServicios();
+ renderTarjetas();
+}
+
+function renderServicios(){
+ let html="";
+ servicios.forEach((s,i)=>{
+   html+=`
+   <div class="card">
+     ${s.nombre} - ${formato(s.valor)}
+     <span class="x" onclick="eliminarServicio(${i})">x</span>
+   </div>`;
+ });
+ document.getElementById("listaServicios").innerHTML=html;
+}
+
+function eliminarServicio(index){
+ servicios.splice(index,1);
+ renderServicios();
+ renderTarjetas();
+}
+
+function eliminarDistribucion(servIndex,nombre){
+ let s=servicios[servIndex];
+ s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre);
+ renderTarjetas();
+}
+
+function aplicarAjuste(nombre){
+ const concepto=document.getElementById("concepto_"+nombre).value;
+ const valor=parseFloat(document.getElementById("valor_"+nombre).value)||0;
+ if(!valor) return;
+
+ if(!ajustes[nombre]) ajustes[nombre]=[];
+ ajustes[nombre].push({concepto,valor});
+
+ document.getElementById("concepto_"+nombre).value="";
+ document.getElementById("valor_"+nombre).value="";
+ renderTarjetas();
+}
+
+function eliminarAjuste(nombre,index){
+ ajustes[nombre].splice(index,1);
+ renderTarjetas();
 }
 
 function renderTarjetas(){
-    let cont = document.getElementById("tarjetas");
-    cont.innerHTML="";
 
-    responsables.forEach((r,index)=>{
+ let html="";
+ let totalFactura=servicios.reduce((acc,s)=>acc+s.valor,0);
+ let totalDistribuido=0;
+ let totalAjustes=0;
 
-        let totalPagar = 0;
+ responsables.forEach(r=>{
 
-        let html = `<div class="card">
-        <h3>${r.nombre}</h3>`;
+   let filas="";
+   let totalPersona=0;
 
-        servicios.forEach(s=>{
+   servicios.forEach((s,index)=>{
+     let dist=s.distribucion.find(d=>d.responsable===r);
+     if(dist){
+       let unit=s.valor/s.totalPersonas;
+       let valorDist=unit*dist.personas;
 
-            if(!r.personas[s.nombre]) r.personas[s.nombre]=0;
+       totalPersona+=valorDist;
+       totalDistribuido+=valorDist;
 
-            html += `
-            <div>
-            ${s.nombre.toUpperCase()} <br>
-            Personas:
-            <input type="number" min="0" step="1"
-            value="${r.personas[s.nombre]}"
-            onchange="actualizarPersonas(${index},'${s.nombre}',this.value)">
-            </div>
-            `;
+       filas+=`
+       <tr>
+         <td>${s.nombre}</td>
+         <td class="valorFactura">${formato(s.valor)}</td>
+         <td>${dist.personas}</td>
+         <td class="valorDistribuido">${formato(valorDist)}</td>
+         <td><span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span></td>
+       </tr>`;
+     }
+   });
 
-            let totalPersonas = totalPersonasServicio(s.nombre);
+   let ajusteLista=ajustes[r]||[];
 
-            if(totalPersonas>0){
-                let unitario = s.valor / totalPersonas;
-                let distribuido = unitario * r.personas[s.nombre];
+   ajusteLista.forEach((a,i)=>{
+     totalPersona+=a.valor;
+     totalAjustes+=a.valor;
 
-                if(r.personas[s.nombre]>0){
-                    totalPagar += distribuido;
+     filas+=`
+     <tr>
+       <td colspan="3">Ajuste: ${a.concepto}</td>
+       <td class="valorDistribuido">${formato(a.valor)}</td>
+       <td><span class="x" onclick="eliminarAjuste('${r}',${i})">x</span></td>
+     </tr>`;
+   });
 
-                    html += `
-                    <div class="factura">
-                        Factura: $${money(s.valor)}
-                    </div>
-                    <div class="distribuido">
-                        Distribuido: $${money(Math.round(distribuido/100)*100)}
-                        <span class="x"
-                        onclick="quitarDistribucion(${index},'${s.nombre}')">❌</span>
-                    </div>
-                    <div>
-                        Fecha límite: ${formatoFecha(s.fecha)}
-                    </div>
-                    `;
-                }
-            }
+   html+=`
+   <div class="card">
+     <h3>${r}</h3>
+     <p class="fecha">Pagar antes de: ${
+       servicios.length>0 ?
+       new Date(servicios[0].fecha).toLocaleDateString("es-CO")
+       : "-"
+     }</p>
 
-        });
+     <table>
+       <tr>
+         <th>Servicio</th>
+         <th>Valor</th>
+         <th>Personas</th>
+         <th>Valor Distr.</th>
+         <th></th>
+       </tr>
+       ${filas}
+     </table>
 
-        let totalAjustes = 0;
+     <br>
+     <input type="checkbox"
+     onchange="document.getElementById('aj_${r}').style.display=this.checked?'block':'none'">
+     <label style="font-size:12px;"> Ajuste</label>
 
-        r.ajustes.forEach((a,i)=>{
-            totalAjustes += a.valor;
+     <div id="aj_${r}" style="display:none;">
+       <input id="concepto_${r}" placeholder="Concepto ajuste">
+       <input type="number" id="valor_${r}" placeholder="Valor ajuste">
+       <button onclick="aplicarAjuste('${r}')">Agregar</button>
+     </div>
 
-            html += `
-            <div>
-                Ajuste: ${a.nombre} $${money(a.valor)}
-                <span class="x"
-                onclick="eliminarAjuste(${index},${i})">❌</span>
-            </div>
-            `;
-        });
+     <p class="total">Total a pagar: ${formato(Math.round(totalPersona/100)*100)}</p>
+   </div>`;
+ });
 
-        totalPagar += totalAjustes;
+ document.getElementById("tarjetas").innerHTML=html;
+ document.getElementById("totalFactura").innerText=formato(totalFactura);
+ document.getElementById("totalDistribuido").innerText=formato(totalDistribuido);
+ document.getElementById("totalAjustes").innerText=formato(totalAjustes);
 
-        html += `
-        <hr>
-        <div>
-            <input type="checkbox" class="check"
-            onchange="toggleAjuste(${index},this.checked)">
-            Ajuste
-        </div>
-        <div id="ajusteBox-${index}" style="display:none;">
-            Nombre:
-            <input type="text" id="ajusteNombre-${index}">
-            Valor:
-            <input type="number" id="ajusteValor-${index}">
-            <button onclick="agregarAjuste(${index})">Agregar</button>
-        </div>
-        <hr>
-        <div class="total">
-            Total a pagar: $${money(Math.round(totalPagar/100)*100)}
-        </div>
-        </div>`;
-
-        cont.innerHTML += html;
-    });
-
-    renderResumen();
-}
-
-function actualizarPersonas(index,servicio,valor){
-    let num = Math.round(Number(valor));
-    if(num<0) num=0;
-
-    responsables[index].personas[servicio]=num;
-    renderTarjetas();
-}
-
-function quitarDistribucion(index,servicio){
-    responsables[index].personas[servicio]=0;
-    renderTarjetas();
-}
-
-function totalPersonasServicio(servicio){
-    let suma=0;
-    responsables.forEach(r=>{
-        suma += r.personas[servicio] || 0;
-    });
-    return suma;
-}
-
-function toggleAjuste(index,estado){
-    document.getElementById("ajusteBox-"+index).style.display =
-        estado ? "block" : "none";
-}
-
-function agregarAjuste(index){
-    let nombre = document.getElementById("ajusteNombre-"+index).value;
-    let valor = parseFloat(document.getElementById("ajusteValor-"+index).value);
-
-    if(!nombre || !valor) return;
-
-    responsables[index].ajustes.push({nombre,valor});
-    document.getElementById("ajusteBox-"+index).style.display="none";
-    renderTarjetas();
-}
-
-function eliminarAjuste(index,i){
-    responsables[index].ajustes.splice(i,1);
-    renderTarjetas();
-}
-
-function formatoFecha(f){
-    let d = new Date(f);
-    return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear();
-}
-
-function renderResumen(){
-    let totalServicios = servicios.reduce((a,b)=>a+b.valor,0);
-    let totalDistribuido = 0;
-    let totalAjustes = 0;
-
-    responsables.forEach(r=>{
-        servicios.forEach(s=>{
-            let totalPersonas = totalPersonasServicio(s.nombre);
-            if(totalPersonas>0){
-                let unitario = s.valor / totalPersonas;
-                totalDistribuido += unitario * r.personas[s.nombre];
-            }
-        });
-        totalAjustes += r.ajustes.reduce((a,b)=>a+b.valor,0);
-    });
-
-    let diferencia = totalServicios - totalDistribuido;
-
-    document.getElementById("resumen").innerHTML = `
-    Total servicios ingresados: $${money(totalServicios)} <br>
-    Total distribuidos: $${money(Math.round(totalDistribuido/100)*100)} <br>
-    Total ajustes: $${money(totalAjustes)} <br>
-    Diferencia detectada:
-    <span class="${diferencia!==0?'diferencia':''}">
-    $${money(diferencia)}
-    </span>
-    `;
+ let valid=document.getElementById("validacion");
+ if(Math.round(totalFactura)===Math.round(totalDistribuido)){
+   valid.innerHTML="✔ Distribución correcta";
+   valid.className="correcto";
+ }else{
+   valid.innerHTML="❌ Diferencia detectada";
+   valid.className="error";
+ }
 }
 
 </script>
+
 </body>
 </html>
