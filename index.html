@@ -24,18 +24,26 @@ box-shadow:0 8px 25px rgba(0,0,0,0.25);
 margin-bottom:25px;
 }
 
-h2{margin-top:40px}
-
-button{
-background:#2563eb;
-color:white;
-border:none;
-padding:8px 15px;
-border-radius:8px;
-cursor:pointer;
+.factura{
+color:#9ca3af;
 }
 
-button:hover{opacity:.9}
+.distribuido{
+color:#22c55e;
+font-weight:bold;
+}
+
+.total-final{
+font-size:20px;
+color:#facc15;
+margin-top:15px;
+}
+
+.fecha{
+font-size:13px;
+color:#f87171;
+margin-bottom:10px;
+}
 
 input,select{
 padding:6px;
@@ -43,6 +51,29 @@ border-radius:6px;
 border:1px solid #ccc;
 width:100%;
 margin-top:5px;
+}
+
+button{
+background:#2563eb;
+color:white;
+border:none;
+padding:6px 12px;
+border-radius:8px;
+cursor:pointer;
+margin-top:8px;
+}
+
+.delete-btn{
+color:#ef4444;
+cursor:pointer;
+font-size:14px;
+}
+
+.summary{
+background:white;
+padding:20px;
+border-radius:15px;
+font-weight:bold;
 }
 
 table{
@@ -58,24 +89,6 @@ text-align:center;
 font-size:14px;
 }
 
-.delete-btn{
-color:#ef4444;
-cursor:pointer;
-font-size:14px;
-}
-
-.small-check{
-transform:scale(.8);
-margin-right:6px;
-}
-
-.summary{
-background:white;
-padding:20px;
-border-radius:15px;
-font-weight:bold;
-}
-
 @media(max-width:768px){
 table{font-size:12px}
 }
@@ -86,7 +99,7 @@ table{font-size:12px}
 <div class="container">
 
 <h2>Agregar Servicio</h2>
-<div class="card" style="background:white;color:black">
+<div style="background:white;padding:20px;border-radius:15px">
 
 <select id="serviceName">
 <option>Agua</option>
@@ -102,6 +115,7 @@ table{font-size:12px}
 <input type="number" id="serviceValue" placeholder="Valor del servicio">
 <input type="date" id="serviceDate">
 <button onclick="addService()">Agregar</button>
+
 </div>
 
 <h2>Representantes</h2>
@@ -117,10 +131,10 @@ table{font-size:12px}
 let services=[]
 
 let reps=[
-{nombre:"Jorge Garzón", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
-{nombre:"Jorge Balero", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
-{nombre:"Arturo Castro", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]},
-{nombre:"Ismael Garzón", personas:1, ajustes:{activo:false,tipo:"",valor:0}, eliminado:[]}
+{nombre:"Jorge Garzón", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]},
+{nombre:"Jorge Balero", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]},
+{nombre:"Arturo Castro", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]},
+{nombre:"Ismael Garzón", personas:1, ajusteAplicado:0, ajusteNombre:"", eliminado:[]}
 ]
 
 function format(n){
@@ -135,7 +149,7 @@ function addService(){
 let name=document.getElementById("serviceName").value
 let value=parseFloat(document.getElementById("serviceValue").value)
 let date=document.getElementById("serviceDate").value
-if(!value)return
+if(!value || !date) return
 services.push({name,value,date})
 document.getElementById("serviceValue").value=""
 render()
@@ -156,12 +170,13 @@ let card=document.createElement("div")
 card.className="card"
 
 let totalRep=0
+let fechaLimite=""
 
 let tabla=`
 <table>
 <tr>
 <th>Servicio</th>
-<th>Valor</th>
+<th>Valor Factura</th>
 <th>Personas</th>
 <th>Valor Distr</th>
 <th></th>
@@ -186,64 +201,45 @@ let valor=unitario*Math.round(rep.personas)
 
 totalRep+=valor
 totalDistribuido+=valor
+fechaLimite=s.date
 
 tabla+=`
 <tr>
 <td>${s.name}</td>
-<td>$${format(s.value)}</td>
+<td class="factura">$${format(s.value)}</td>
 <td>${Math.round(rep.personas)}</td>
-<td>$${format(valor)}</td>
+<td class="distribuido">$${format(valor)}</td>
 <td><span class="delete-btn" onclick="removeService(${ri},${si})">✖</span></td>
 </tr>`
 })
 
 tabla+="</table>"
 
-let ajusteHTML=""
-
-if(rep.ajustes.activo){
-
-totalRep+=rep.ajustes.valor
-totalAjustes+=rep.ajustes.valor
-
-ajusteHTML=`
-<div style="margin-top:12px;background:#1f2937;padding:10px;border-radius:8px">
-<div style="display:flex;justify-content:space-between;align-items:center">
-<strong>Ajuste</strong>
-<span style="cursor:pointer;color:#ef4444" onclick="eliminarAjuste(${ri})">✖</span>
-</div>
-
-<input placeholder="Nombre del ajuste"
-value="${rep.ajustes.tipo}"
-oninput="setTipo(${ri},this.value)">
-
-<input type="number"
-placeholder="Valor ajuste"
-value="${rep.ajustes.valor}"
-oninput="setValor(${ri},this.value)">
-</div>
-`
-
-}else{
-
-ajusteHTML=`
-<div style="margin-top:12px">
-<label style="font-size:12px;color:#9ca3af">
-<input type="checkbox" class="small-check"
-onchange="toggleAjuste(${ri},this.checked)">
- Aplicar ajuste
-</label>
-</div>
-`
-}
+totalRep+=rep.ajusteAplicado
+totalAjustes+=rep.ajusteAplicado
 
 let totalFinal=round100(totalRep)
 
 card.innerHTML=`
 <h3>${rep.nombre}</h3>
+<div class="fecha">Pagar antes de: ${fechaLimite || "-"}</div>
 ${tabla}
-${ajusteHTML}
-<h4 style="margin-top:15px">Total a pagar: $${format(totalFinal)}</h4>
+
+<div style="margin-top:15px;background:#1f2937;padding:10px;border-radius:8px">
+<input id="nombreAjuste-${ri}" placeholder="Nombre del ajuste">
+<input id="valorAjuste-${ri}" type="number" placeholder="Valor ajuste">
+<button onclick="aplicarAjuste(${ri})">Agregar ajuste</button>
+${rep.ajusteAplicado!=0?`
+<div style="margin-top:8px">
+Ajuste aplicado: ${rep.ajusteNombre} 
+($${format(rep.ajusteAplicado)})
+<span class="delete-btn" onclick="eliminarAjuste(${ri})">✖</span>
+</div>`:""}
+</div>
+
+<div class="total-final">
+Total a pagar: $${format(totalFinal)}
+</div>
 `
 
 container.appendChild(card)
@@ -259,27 +255,22 @@ Diferencia: $${format(diferencia)}
 `
 }
 
-function removeService(ri,si){
-reps[ri].eliminado.push(si)
-render()
-}
-
-function toggleAjuste(ri,estado){
-reps[ri].ajustes.activo=estado
+function aplicarAjuste(ri){
+let nombre=document.getElementById(`nombreAjuste-${ri}`).value
+let valor=parseFloat(document.getElementById(`valorAjuste-${ri}`).value)||0
+reps[ri].ajusteNombre=nombre
+reps[ri].ajusteAplicado=valor
 render()
 }
 
 function eliminarAjuste(ri){
-reps[ri].ajustes={activo:false,tipo:"",valor:0}
+reps[ri].ajusteAplicado=0
+reps[ri].ajusteNombre=""
 render()
 }
 
-function setTipo(ri,val){
-reps[ri].ajustes.tipo=val
-}
-
-function setValor(ri,val){
-reps[ri].ajustes.valor=parseFloat(val)||0
+function removeService(ri,si){
+reps[ri].eliminado.push(si)
 render()
 }
 
