@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Distribución Servicios</title>
+<title>Distribución de Servicios</title>
 
 <style>
 
@@ -43,8 +43,9 @@ background:#1e1e1e;
 padding:20px;
 margin:20px auto;
 border-radius:16px;
-max-width:420px;
 box-shadow:0 0 20px rgba(0,0,0,0.4);
+width:95%;
+max-width:900px;
 }
 
 table{
@@ -78,11 +79,6 @@ color:#00ff99;
 margin-top:10px;
 }
 
-.fecha{
-color:red;
-font-weight:bold;
-}
-
 .x{
 color:red;
 cursor:pointer;
@@ -94,12 +90,25 @@ margin:40px auto;
 padding:20px;
 background:#1e1e1e;
 border-radius:10px;
-max-width:420px;
+max-width:900px;
 text-align:center;
 }
 
 .correcto{color:#00ff99}
 .error{color:red}
+
+@media (max-width:600px){
+
+th,td{
+font-size:14px;
+padding:6px;
+}
+
+.total{
+font-size:18px;
+}
+
+}
 
 </style>
 
@@ -138,8 +147,6 @@ text-align:center;
 </select>
 
 <input id="valorServicio" type="number" placeholder="Valor servicio">
-
-<input id="fechaPago" type="date">
 
 <div id="distribucionInputs"></div>
 
@@ -182,7 +189,6 @@ text-align:center;
 let responsables=[]
 let servicios=[]
 let ajustes={}
-
 
 function guardar(){
 localStorage.setItem("dataServicios",JSON.stringify({responsables,servicios,ajustes}))
@@ -287,7 +293,6 @@ function agregarServicio(){
 
 let nombre=document.getElementById("servicio").value
 let valor=parseFloat(document.getElementById("valorServicio").value)||0
-let fecha=document.getElementById("fechaPago").value
 
 if(servicios.some(s=>s.nombre===nombre)){
 alert("Servicio ya existe")
@@ -313,7 +318,7 @@ alert("Total personas debe ser entero")
 return
 }
 
-servicios.push({nombre,valor,fecha,distribucion,totalPersonas})
+servicios.push({nombre,valor,distribucion,totalPersonas})
 
 renderServicios()
 renderTarjetas()
@@ -469,6 +474,12 @@ let totalFactura=0
 let totalDistribuido=0
 let totalAjustes=0
 
+
+servicios.forEach(s=>{
+totalFactura+=s.valor
+})
+
+
 responsables.forEach(r=>{
 
 let filas=""
@@ -485,7 +496,6 @@ let valorDist=unit*dist.personas
 
 totalPersona+=valorDist
 totalDistribuido+=valorDist
-totalFactura+=s.valor
 
 filas+=`
 <tr>
