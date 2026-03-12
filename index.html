@@ -144,7 +144,10 @@ font-size:18px;
 
 <p class="mes">Facturas mes: febrero 2026</p>
 
-<p class="fechaPago">Pagar antes de: 18/2/2026</p>
+<div class="fechaPago">
+Pagar antes de:
+<input type="date" id="fechaPagoInput" onchange="guardarFecha()" style="font-size:20px; text-align:center;">
+</div>
 
 </div>
 
@@ -229,6 +232,23 @@ n.style.display="block"
 setTimeout(()=>{
 n.style.display="none"
 },2000)
+
+}
+
+function guardarFecha(){
+
+let fecha=document.getElementById("fechaPagoInput").value
+localStorage.setItem("fechaPago",fecha)
+
+}
+
+function cargarFecha(){
+
+let f=localStorage.getItem("fechaPago")
+
+if(f){
+document.getElementById("fechaPagoInput").value=f
+}
 
 }
 
@@ -392,10 +412,6 @@ ${filas}
 
 </table>
 
-<br>
-
-<label><input type="checkbox"> Ajt</label>
-
 <p class="total">Total a pagar: ${formato(redondearArriba100(totalPersona))}</p>
 
 </div>
@@ -453,6 +469,8 @@ XLSX.utils.book_append_sheet(wb,ws,"Servicios")
 XLSX.writeFile(wb,"DistribucionServicios.xlsx")
 
 }
+
+cargarFecha()
 
 </script>
 
