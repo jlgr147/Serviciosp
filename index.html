@@ -14,9 +14,25 @@ margin:0;
 padding:20px;
 }
 
-h2{
-margin-top:40px;
+h1{
 text-align:center;
+}
+
+.encabezado{
+text-align:center;
+margin-bottom:20px;
+}
+
+.mes{
+color:#00d2d3;
+font-size:22px;
+}
+
+.fechaPago{
+color:red;
+font-size:26px;
+margin-top:10px;
+font-weight:bold;
 }
 
 input,select{
@@ -40,28 +56,29 @@ margin-top:5px;
 
 .card{
 background:#1e1e1e;
-padding:20px;
-margin:20px auto;
-border-radius:16px;
-box-shadow:0 0 20px rgba(0,0,0,0.4);
+padding:30px;
+margin:30px auto;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
 width:95%;
-max-width:900px;
+max-width:1100px;
 }
 
 table{
 width:100%;
-margin-top:10px;
+margin-top:15px;
 border-collapse:collapse;
-font-size:16px;
+font-size:18px;
 }
 
 th,td{
-padding:8px;
+padding:10px;
 text-align:center;
 }
 
 th{
 background:#333;
+font-size:20px;
 }
 
 .valorFactura{
@@ -70,44 +87,45 @@ color:#aaa;
 
 .valorDistribuido{
 color:#00cec9;
+font-weight:bold;
 }
 
 .total{
-font-size:22px;
+font-size:28px;
 font-weight:bold;
 color:#00ff99;
-margin-top:10px;
+margin-top:20px;
 }
 
 .x{
 color:red;
 cursor:pointer;
 margin-left:10px;
+font-size:20px;
 }
 
 .resumen{
 margin:40px auto;
-padding:20px;
+padding:30px;
 background:#1e1e1e;
-border-radius:10px;
-max-width:900px;
+border-radius:16px;
+max-width:1100px;
 text-align:center;
+font-size:18px;
 }
 
 .correcto{color:#00ff99}
 .error{color:red}
 
-@media (max-width:600px){
-
-th,td{
-font-size:14px;
-padding:6px;
-}
-
-.total{
+.notificacion{
+position:fixed;
+top:20px;
+right:20px;
+background:#00b894;
+padding:15px 25px;
+border-radius:10px;
+display:none;
 font-size:18px;
-}
-
 }
 
 </style>
@@ -117,6 +135,18 @@ font-size:18px;
 </head>
 
 <body>
+
+<div class="notificacion" id="noti"></div>
+
+<div class="encabezado">
+
+<h1>Distribución de Servicios</h1>
+
+<p class="mes">Facturas mes: febrero 2026</p>
+
+<p class="fechaPago">Pagar antes de: 18/2/2026</p>
+
+</div>
 
 <h2>Agregar Responsable</h2>
 
@@ -190,32 +220,17 @@ let responsables=[]
 let servicios=[]
 let ajustes={}
 
-function guardar(){
-localStorage.setItem("dataServicios",JSON.stringify({responsables,servicios,ajustes}))
-}
+function noti(texto){
 
-function cargar(){
+let n=document.getElementById("noti")
+n.innerText=texto
+n.style.display="block"
 
-let data=localStorage.getItem("dataServicios")
-
-if(data){
-let obj=JSON.parse(data)
-responsables=obj.responsables||[]
-servicios=obj.servicios||[]
-ajustes=obj.ajustes||{}
-}
+setTimeout(()=>{
+n.style.display="none"
+},2000)
 
 }
-
-cargar()
-
-
-window.onbeforeunload=function(){
-if(servicios.length>0||responsables.length>0){
-return "¿Seguro que desea actualizar la página?"
-}
-}
-
 
 function formato(n){
 return "$"+Math.round(n).toLocaleString("es-CO")
@@ -224,7 +239,6 @@ return "$"+Math.round(n).toLocaleString("es-CO")
 function redondearArriba100(n){
 return Math.ceil(n/100)*100
 }
-
 
 function agregarResponsable(){
 
@@ -239,39 +253,16 @@ document.getElementById("nombreResp").value=""
 renderResponsables()
 renderTarjetas()
 
-guardar()
+noti("Persona agregada ✔")
 
 }
-
-
-function eliminarResponsable(i){
-
-if(!confirm("¿Seguro eliminar responsable?"))return
-
-let nombre=responsables[i]
-
-responsables.splice(i,1)
-
-delete ajustes[nombre]
-
-servicios.forEach(s=>{
-s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre)
-})
-
-renderResponsables()
-renderTarjetas()
-
-guardar()
-
-}
-
 
 function renderResponsables(){
 
 let html="<ul>"
 
 responsables.forEach((r,i)=>{
-html+=`<li>${r} <span class="x" onclick="eliminarResponsable(${i})">x</span></li>`
+html+=`<li>${r}</li>`
 })
 
 html+="</ul>"
@@ -288,16 +279,10 @@ document.getElementById("distribucionInputs").innerHTML=inputs
 
 }
 
-
 function agregarServicio(){
 
 let nombre=document.getElementById("servicio").value
 let valor=parseFloat(document.getElementById("valorServicio").value)||0
-
-if(servicios.some(s=>s.nombre===nombre)){
-alert("Servicio ya existe")
-return
-}
 
 let totalPersonas=0
 let distribucion=[]
@@ -313,20 +298,14 @@ totalPersonas+=p
 
 })
 
-if(!Number.isInteger(totalPersonas)){
-alert("Total personas debe ser entero")
-return
-}
-
 servicios.push({nombre,valor,distribucion,totalPersonas})
 
 renderServicios()
 renderTarjetas()
 
-guardar()
+noti("Servicio agregado ✔")
 
 }
-
 
 function renderServicios(){
 
@@ -343,10 +322,6 @@ html+=`
 
 <p>Personas totales: ${s.totalPersonas}</p>
 
-<button onclick="editarServicio(${i})">Editar</button>
-
-<span class="x" onclick="eliminarServicio(${i})">x</span>
-
 </div>
 `
 
@@ -355,117 +330,6 @@ html+=`
 document.getElementById("listaServicios").innerHTML=html
 
 }
-
-
-function editarServicio(i){
-
-let s=servicios[i]
-
-let html=`
-<div class="card">
-
-<b>${s.nombre}</b>
-
-Valor servicio
-<input type="number" id="editValor${i}" value="${s.valor}">
-
-Personas totales
-<input type="number" id="editPersonas${i}" value="${s.totalPersonas}">
-
-<br>
-
-<button onclick="guardarEdicion(${i})">Guardar</button>
-
-<button onclick="renderServicios()">Cancelar</button>
-
-</div>
-`
-
-document.getElementById("listaServicios").innerHTML=html
-
-}
-
-
-function guardarEdicion(i){
-
-let valor=parseFloat(document.getElementById("editValor"+i).value)||0
-let personas=parseFloat(document.getElementById("editPersonas"+i).value)||0
-
-if(!Number.isInteger(personas)){
-alert("Personas debe ser entero")
-return
-}
-
-servicios[i].valor=valor
-servicios[i].totalPersonas=personas
-
-renderServicios()
-renderTarjetas()
-
-guardar()
-
-}
-
-
-function eliminarServicio(i){
-
-if(!confirm("¿Seguro eliminar servicio?"))return
-
-servicios.splice(i,1)
-
-renderServicios()
-renderTarjetas()
-
-guardar()
-
-}
-
-
-function eliminarDistribucion(servIndex,nombre){
-
-if(!confirm("¿Seguro eliminar servicio de tarjeta?"))return
-
-let s=servicios[servIndex]
-
-s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre)
-
-renderTarjetas()
-
-guardar()
-
-}
-
-
-function aplicarAjuste(nombre){
-
-let concepto=document.getElementById("concepto_"+nombre).value
-let valor=parseFloat(document.getElementById("valor_"+nombre).value)||0
-
-if(!valor)return
-
-if(!ajustes[nombre])ajustes[nombre]=[]
-
-ajustes[nombre].push({concepto,valor})
-
-renderTarjetas()
-
-guardar()
-
-}
-
-
-function eliminarAjuste(nombre,i){
-
-if(!confirm("¿Seguro eliminar ajt?"))return
-
-ajustes[nombre].splice(i,1)
-
-renderTarjetas()
-
-guardar()
-
-}
-
 
 function renderTarjetas(){
 
@@ -474,11 +338,9 @@ let totalFactura=0
 let totalDistribuido=0
 let totalAjustes=0
 
-
 servicios.forEach(s=>{
 totalFactura+=s.valor
 })
-
 
 responsables.forEach(r=>{
 
@@ -503,31 +365,13 @@ filas+=`
 <td class="valorFactura">${formato(s.valor)}</td>
 <td>${dist.personas}</td>
 <td class="valorDistribuido">${formato(valorDist)}</td>
-<td><span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span></td>
+<td><span class="x">x</span></td>
 </tr>
 `
 
 }
 
 })
-
-let lista=ajustes[r]||[]
-
-lista.forEach((a,i)=>{
-
-totalPersona+=a.valor
-totalAjustes+=a.valor
-
-filas+=`
-<tr>
-<td colspan="3">Ajt: ${a.concepto}</td>
-<td>${formato(a.valor)}</td>
-<td><span class="x" onclick="eliminarAjuste('${r}',${i})">x</span></td>
-</tr>
-`
-
-})
-
 
 html+=`
 <div class="card">
@@ -550,16 +394,7 @@ ${filas}
 
 <br>
 
-<input type="checkbox" onchange="document.getElementById('aj_${r}').style.display=this.checked?'block':'none'"> Ajt
-
-<div id="aj_${r}" style="display:none">
-
-<input id="concepto_${r}" placeholder="Concepto ajt">
-<input type="number" id="valor_${r}" placeholder="Valor ajt">
-
-<button onclick="aplicarAjuste('${r}')">Agregar</button>
-
-</div>
+<label><input type="checkbox"> Ajt</label>
 
 <p class="total">Total a pagar: ${formato(redondearArriba100(totalPersona))}</p>
 
@@ -585,7 +420,6 @@ valid.className="error"
 }
 
 }
-
 
 function exportarExcel(){
 
@@ -619,10 +453,6 @@ XLSX.utils.book_append_sheet(wb,ws,"Servicios")
 XLSX.writeFile(wb,"DistribucionServicios.xlsx")
 
 }
-
-renderResponsables()
-renderServicios()
-renderTarjetas()
 
 </script>
 
