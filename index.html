@@ -25,8 +25,8 @@ th{background:#333;}
 .subtitulo{color:#00cec9;font-size:14px;margin-bottom:10px;}
 </style>
 
-<!-- SheetJS para exportar Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 </head>
 <body>
 
@@ -36,6 +36,7 @@ th{background:#333;}
 <div id="listaResp"></div>
 
 <h2>Agregar Servicio</h2>
+
 <select id="servicio">
 <option>Agua</option>
 <option>Internet claro</option>
@@ -46,8 +47,10 @@ th{background:#333;}
 <option>Seguro</option>
 <option>Netflix - YouTube</option>
 </select>
+
 <input id="valorServicio" type="number" placeholder="Valor servicio">
 <input id="fechaPago" type="date" placeholder="Fecha límite">
+
 <div id="distribucionInputs"></div>
 <button onclick="agregarServicio()">Agregar Servicio</button>
 
@@ -96,7 +99,10 @@ window.onbeforeunload=function(){
 
 function formato(n){return "$"+Math.round(n).toLocaleString("es-CO");}
 function redondearArriba100(n){return Math.ceil(n/100)*100;}
-function confirmar(msg){ return confirm(msg); }
+
+function confirmar(msg){
+ return confirm(msg);
+}
 
 function agregarResponsable(){
  const nombre=document.getElementById("nombreResp").value.trim();
@@ -138,6 +144,7 @@ function renderResponsables(){
 }
 
 function agregarServicio(){
+
  const nombre=document.getElementById("servicio").value;
  const valor=parseFloat(document.getElementById("valorServicio").value)||0;
  const fecha=document.getElementById("fechaPago").value;
@@ -176,11 +183,45 @@ function renderServicios(){
  servicios.forEach((s,i)=>{
    html+=`
    <div class="card">
-     ${s.nombre} - ${formato(s.valor)} - Personas: ${s.totalPersonas}
-     <span class="x" onclick="eliminarServicio(${i})">x</span>
+
+   <b>${s.nombre}</b>
+
+   Valor servicio
+   <input type="number" value="${s.valor}" onchange="editarValorServicio(${i},this.value)">
+
+   Personas totales
+   <input type="number" value="${s.totalPersonas}" onchange="editarPersonasServicio(${i},this.value)">
+
+   <span class="x" onclick="eliminarServicio(${i})">x</span>
+
    </div>`;
  });
+
  document.getElementById("listaServicios").innerHTML=html;
+}
+
+function editarValorServicio(index,valor){
+ let v=parseFloat(valor)||0;
+ if(v<=0){
+   alert("Valor inválido");
+   renderServicios();
+   return;
+ }
+ servicios[index].valor=v;
+ renderTarjetas();
+ guardar();
+}
+
+function editarPersonasServicio(index,personas){
+ let p=parseFloat(personas)||0;
+ if(!Number.isInteger(p)){
+   alert("Las personas totales deben ser entero");
+   renderServicios();
+   return;
+ }
+ servicios[index].totalPersonas=p;
+ renderTarjetas();
+ guardar();
 }
 
 function eliminarServicio(index){
@@ -195,6 +236,21 @@ function eliminarDistribucion(servIndex,nombre){
  if(!confirmar("¿Seguro quitar este servicio a la tarjeta?")) return;
  let s=servicios[servIndex];
  s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre);
+ renderTarjetas();
+ guardar();
+}
+
+function editarPersonasResponsable(servIndex,nombre,valor){
+
+ let v=parseFloat(valor)||0;
+
+ let servicio=servicios[servIndex];
+ let dist=servicio.distribucion.find(d=>d.responsable===nombre);
+
+ if(dist){
+ dist.personas=v;
+ }
+
  renderTarjetas();
  guardar();
 }
@@ -219,22 +275,27 @@ function eliminarAjuste(nombre,index){
 }
 
 function renderTarjetas(){
+
  let html="";
  let totalFactura=servicios.reduce((a,s)=>a+s.valor,0);
  let totalDistribuido=0;
  let totalAjustes=0;
+
  let mesActual=new Date().toLocaleString("es-CO",{month:"long"});
  let añoActual=new Date().getFullYear();
 
  responsables.forEach(r=>{
+
    let filas="";
    let totalPersona=0;
 
    servicios.forEach((s,index)=>{
      let dist=s.distribucion.find(d=>d.responsable===r);
      if(dist){
+
        let unit=s.valor/s.totalPersonas;
        let valorDist=unit*dist.personas;
+
        totalPersona+=valorDist;
        totalDistribuido+=valorDist;
 
@@ -242,9 +303,20 @@ function renderTarjetas(){
        <tr>
          <td>${s.nombre}</td>
          <td class="valorFactura">${formato(s.valor)}</td>
-         <td>${Math.round(dist.personas)}</td>
+
+         <td>
+         <input type="number"
+         step="any"
+         value="${dist.personas}"
+         onchange="editarPersonasResponsable(${index},'${r}',this.value)">
+         </td>
+
          <td class="valorDistribuido">${formato(valorDist)}</td>
-         <td><span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span></td>
+
+         <td>
+         <span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span>
+         </td>
+
        </tr>`;
      }
    });
@@ -264,13 +336,21 @@ function renderTarjetas(){
 
    html+=`
    <div class="card">
+
      <h3>${r}</h3>
-     <div class="subtitulo">Facturas mes: ${mesActual} ${añoActual}</div>
+
+     <div class="subtitulo">
+     Facturas mes: ${mesActual} ${añoActual}
+     </div>
+
      <p class="fecha">Pagar antes de: ${
-       servicios.length>0? new Date(servicios[0].fecha).toLocaleDateString("es-CO") : "-"
+       servicios.length>0?
+       new Date(servicios[0].fecha).toLocaleDateString("es-CO")
+       : "-"
      }</p>
 
      <table>
+
        <tr>
          <th>Servicio</th>
          <th>Valor</th>
@@ -278,30 +358,44 @@ function renderTarjetas(){
          <th>Valor Distr.</th>
          <th></th>
        </tr>
+
        ${filas}
+
      </table>
 
      <br>
+
      <input type="checkbox"
      onchange="document.getElementById('aj_${r}').style.display=this.checked?'block':'none'">
+
      <label style="font-size:12px;"> Ajt</label>
 
      <div id="aj_${r}" style="display:none;">
+
        <input id="concepto_${r}" placeholder="Concepto ajt">
        <input type="number" id="valor_${r}" placeholder="Valor ajt">
-       <button onclick="aplicarAjuste('${r}')">Agregar</button>
+
+       <button onclick="aplicarAjuste('${r}')">
+       Agregar
+       </button>
+
      </div>
 
-     <p class="total">Total a pagar: ${formato(redondearArriba100(totalPersona))}</p>
+     <p class="total">
+     Total a pagar: ${formato(redondearArriba100(totalPersona))}
+     </p>
+
    </div>`;
  });
 
  document.getElementById("tarjetas").innerHTML=html;
+
  document.getElementById("totalFactura").innerText=formato(totalFactura);
  document.getElementById("totalDistribuido").innerText=formato(totalDistribuido);
  document.getElementById("totalAjustes").innerText=formato(totalAjustes);
 
  let valid=document.getElementById("validacion");
+
  if(Math.round(totalFactura)===Math.round(totalDistribuido)){
    valid.innerHTML="✔ Distribución correcta";
    valid.className="correcto";
@@ -311,8 +405,8 @@ function renderTarjetas(){
  }
 }
 
-// --- Exportar Excel usando SheetJS ---
 function exportarExcel(){
+
  if(servicios.length===0){
    alert("No hay servicios para exportar");
    return;
@@ -352,5 +446,6 @@ renderServicios();
 renderTarjetas();
 
 </script>
+
 </body>
 </html>
