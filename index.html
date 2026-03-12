@@ -14,13 +14,11 @@ margin:0;
 padding:20px;
 }
 
-h1{
-text-align:center;
-}
+h1{text-align:center}
 
 .encabezado{
 text-align:center;
-margin-bottom:20px;
+margin-bottom:30px;
 }
 
 .mes{
@@ -31,8 +29,17 @@ font-size:22px;
 .fechaPago{
 color:red;
 font-size:26px;
-margin-top:10px;
 font-weight:bold;
+}
+
+.card{
+background:#1e1e1e;
+padding:30px;
+margin:25px auto;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+width:95%;
+max-width:1100px;
 }
 
 input,select{
@@ -54,16 +61,6 @@ color:white;
 margin-top:5px;
 }
 
-.card{
-background:#1e1e1e;
-padding:30px;
-margin:30px auto;
-border-radius:20px;
-box-shadow:0 0 20px rgba(0,0,0,0.5);
-width:95%;
-max-width:1100px;
-}
-
 table{
 width:100%;
 margin-top:15px;
@@ -78,44 +75,23 @@ text-align:center;
 
 th{
 background:#333;
-font-size:20px;
 }
 
-.valorFactura{
-color:#aaa;
-}
-
-.valorDistribuido{
-color:#00cec9;
-font-weight:bold;
-}
+.valorFactura{color:#aaa}
+.valorDistribuido{color:#00cec9;font-weight:bold}
 
 .total{
 font-size:28px;
 font-weight:bold;
 color:#00ff99;
-margin-top:20px;
+margin-top:15px;
 }
 
 .x{
 color:red;
 cursor:pointer;
-margin-left:10px;
 font-size:20px;
 }
-
-.resumen{
-margin:40px auto;
-padding:30px;
-background:#1e1e1e;
-border-radius:16px;
-max-width:1100px;
-text-align:center;
-font-size:18px;
-}
-
-.correcto{color:#00ff99}
-.error{color:red}
 
 .notificacion{
 position:fixed;
@@ -125,18 +101,19 @@ background:#00b894;
 padding:15px 25px;
 border-radius:10px;
 display:none;
-font-size:18px;
 }
+
+.correcto{color:#00ff99}
+.error{color:red}
 
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 </head>
-
 <body>
 
-<div class="notificacion" id="noti"></div>
+<div id="noti" class="notificacion"></div>
 
 <div class="encabezado">
 
@@ -146,14 +123,15 @@ font-size:18px;
 
 <div class="fechaPago">
 Pagar antes de:
-<input type="date" id="fechaPagoInput" onchange="guardarFecha()" style="font-size:20px; text-align:center;">
+<input type="date" id="fechaPago" onchange="guardarDatos()">
 </div>
 
 </div>
 
-<h2>Agregar Responsable</h2>
 
 <div class="card">
+
+<h2>Agregar Responsable</h2>
 
 <input id="nombreResp" placeholder="Nombre responsable">
 
@@ -164,17 +142,17 @@ Pagar antes de:
 </div>
 
 
-<h2>Agregar Servicio</h2>
-
 <div class="card">
+
+<h2>Agregar Servicio</h2>
 
 <select id="servicio">
 <option>Agua</option>
-<option>Internet claro</option>
-<option>Internet Barbosa</option>
 <option>Gas</option>
 <option>Luz</option>
 <option>Aseo</option>
+<option>Internet claro</option>
+<option>Internet Barbosa</option>
 <option>Seguro</option>
 <option>Netflix - YouTube</option>
 </select>
@@ -183,36 +161,31 @@ Pagar antes de:
 
 <div id="distribucionInputs"></div>
 
-<button onclick="agregarServicio()">Agregar Servicio</button>
+<button onclick="agregarServicio()">Agregar servicio</button>
 
 </div>
 
 
-<h2>Servicios acumulados</h2>
+<h2 style="text-align:center">Servicios acumulados</h2>
 
 <div id="listaServicios"></div>
 
-
-<h2>Distribución de servicios</h2>
+<h2 style="text-align:center">Distribución de servicios</h2>
 
 <div id="tarjetas"></div>
 
 
-<div class="resumen">
+<div class="card">
 
 <h3>Resumen General</h3>
 
 <p>Total Servicios Ingresados: <span id="totalFactura">$0</span></p>
-
 <p>Total Distribuido: <span id="totalDistribuido">$0</span></p>
-
 <p>Total Ajustes: <span id="totalAjustes">$0</span></p>
 
 <p id="validacion"></p>
 
-<br>
-
-<button onclick="exportarExcel()">📊 Descargar Excel</button>
+<button onclick="exportarExcel()">📊 Exportar Excel</button>
 
 </div>
 
@@ -223,32 +196,13 @@ let responsables=[]
 let servicios=[]
 let ajustes={}
 
-function noti(texto){
+function noti(t){
 
 let n=document.getElementById("noti")
-n.innerText=texto
+n.innerText=t
 n.style.display="block"
 
-setTimeout(()=>{
-n.style.display="none"
-},2000)
-
-}
-
-function guardarFecha(){
-
-let fecha=document.getElementById("fechaPagoInput").value
-localStorage.setItem("fechaPago",fecha)
-
-}
-
-function cargarFecha(){
-
-let f=localStorage.getItem("fechaPago")
-
-if(f){
-document.getElementById("fechaPagoInput").value=f
-}
+setTimeout(()=>n.style.display="none",2000)
 
 }
 
@@ -256,8 +210,34 @@ function formato(n){
 return "$"+Math.round(n).toLocaleString("es-CO")
 }
 
-function redondearArriba100(n){
+function redondear100(n){
 return Math.ceil(n/100)*100
+}
+
+function guardarDatos(){
+
+let data={responsables,servicios,ajustes,fecha:document.getElementById("fechaPago").value}
+
+localStorage.setItem("serviciosApp",JSON.stringify(data))
+
+}
+
+function cargarDatos(){
+
+let data=localStorage.getItem("serviciosApp")
+
+if(data){
+
+let obj=JSON.parse(data)
+
+responsables=obj.responsables||[]
+servicios=obj.servicios||[]
+ajustes=obj.ajustes||{}
+
+document.getElementById("fechaPago").value=obj.fecha||""
+
+}
+
 }
 
 function agregarResponsable(){
@@ -270,32 +250,11 @@ responsables.push(nombre)
 
 document.getElementById("nombreResp").value=""
 
-renderResponsables()
-renderTarjetas()
+noti("Persona agregada")
 
-noti("Persona agregada ✔")
+guardarDatos()
 
-}
-
-function renderResponsables(){
-
-let html="<ul>"
-
-responsables.forEach((r,i)=>{
-html+=`<li>${r}</li>`
-})
-
-html+="</ul>"
-
-document.getElementById("listaResp").innerHTML=html
-
-let inputs=""
-
-responsables.forEach((r,i)=>{
-inputs+=`${r}: <input type="number" id="dist_${i}" placeholder="Personas"><br>`
-})
-
-document.getElementById("distribucionInputs").innerHTML=inputs
+render()
 
 }
 
@@ -304,26 +263,84 @@ function agregarServicio(){
 let nombre=document.getElementById("servicio").value
 let valor=parseFloat(document.getElementById("valorServicio").value)||0
 
-let totalPersonas=0
+let total=0
 let distribucion=[]
 
 responsables.forEach((r,i)=>{
 
-let p=parseFloat(document.getElementById("dist_"+i).value)||0
+let p=parseInt(document.getElementById("dist_"+i)?.value)||0
 
 if(p>0){
 distribucion.push({responsable:r,personas:p})
-totalPersonas+=p
+total+=p
 }
 
 })
 
-servicios.push({nombre,valor,distribucion,totalPersonas})
+servicios.push({nombre,valor,totalPersonas:total,distribucion})
 
+noti("Servicio agregado")
+
+guardarDatos()
+
+render()
+
+}
+
+function render(){
+
+renderResponsables()
 renderServicios()
 renderTarjetas()
 
-noti("Servicio agregado ✔")
+}
+
+function renderResponsables(){
+
+let html="<ul>"
+let inputs=""
+
+responsables.forEach((r,i)=>{
+
+html+=`<li>${r}</li>`
+
+inputs+=`${r}: <input type="number" id="dist_${i}" placeholder="Personas"><br>`
+
+})
+
+html+="</ul>"
+
+document.getElementById("listaResp").innerHTML=html
+document.getElementById("distribucionInputs").innerHTML=inputs
+
+}
+
+function editarServicio(i){
+
+let s=servicios[i]
+
+let nuevoValor=prompt("Nuevo valor servicio",s.valor)
+
+let nuevasPersonas=prompt("Total personas",s.totalPersonas)
+
+if(nuevoValor!==null)s.valor=parseFloat(nuevoValor)
+if(nuevasPersonas!==null)s.totalPersonas=parseInt(nuevasPersonas)
+
+guardarDatos()
+
+render()
+
+}
+
+function eliminarServicio(i){
+
+if(!confirm("¿Seguro eliminar servicio?"))return
+
+servicios.splice(i,1)
+
+guardarDatos()
+
+render()
 
 }
 
@@ -338,9 +355,13 @@ html+=`
 
 <b>${s.nombre}</b>
 
-<p>Valor servicio: ${formato(s.valor)}</p>
+<p>Valor: ${formato(s.valor)}</p>
 
-<p>Personas totales: ${s.totalPersonas}</p>
+<p>Personas: ${s.totalPersonas}</p>
+
+<button onclick="editarServicio(${i})">Editar</button>
+
+<span class="x" onclick="eliminarServicio(${i})">x</span>
 
 </div>
 `
@@ -351,41 +372,60 @@ document.getElementById("listaServicios").innerHTML=html
 
 }
 
+function eliminarDistribucion(servIndex,responsable){
+
+if(!confirm("¿Eliminar servicio de tarjeta?"))return
+
+let s=servicios[servIndex]
+
+s.distribucion=s.distribucion.filter(d=>d.responsable!==responsable)
+
+guardarDatos()
+
+render()
+
+}
+
 function renderTarjetas(){
 
 let html=""
+
 let totalFactura=0
 let totalDistribuido=0
 let totalAjustes=0
 
-servicios.forEach(s=>{
-totalFactura+=s.valor
-})
+servicios.forEach(s=>totalFactura+=s.valor)
 
 responsables.forEach(r=>{
 
 let filas=""
 let totalPersona=0
 
-servicios.forEach((s,index)=>{
+servicios.forEach((s,i)=>{
 
-let dist=s.distribucion.find(d=>d.responsable===r)
+let d=s.distribucion.find(x=>x.responsable===r)
 
-if(dist){
+if(d){
 
 let unit=s.valor/s.totalPersonas
-let valorDist=unit*dist.personas
+let valor=unit*d.personas
 
-totalPersona+=valorDist
-totalDistribuido+=valorDist
+totalPersona+=valor
+totalDistribuido+=valor
 
 filas+=`
 <tr>
+
 <td>${s.nombre}</td>
+
 <td class="valorFactura">${formato(s.valor)}</td>
-<td>${dist.personas}</td>
-<td class="valorDistribuido">${formato(valorDist)}</td>
-<td><span class="x">x</span></td>
+
+<td>${d.personas}</td>
+
+<td class="valorDistribuido">${formato(valor)}</td>
+
+<td><span class="x" onclick="eliminarDistribucion(${i},'${r}')">x</span></td>
+
 </tr>
 `
 
@@ -412,7 +452,7 @@ ${filas}
 
 </table>
 
-<p class="total">Total a pagar: ${formato(redondearArriba100(totalPersona))}</p>
+<p class="total">Total a pagar: ${formato(redondear100(totalPersona))}</p>
 
 </div>
 `
@@ -427,12 +467,16 @@ document.getElementById("totalAjustes").innerText=formato(totalAjustes)
 
 let valid=document.getElementById("validacion")
 
-if(Math.round(totalFactura)===Math.round(totalDistribuido)){
+if(Math.round(totalFactura)==Math.round(totalDistribuido)){
+
 valid.innerHTML="✔ Distribución correcta"
 valid.className="correcto"
+
 }else{
+
 valid.innerHTML="❌ Diferencia detectada"
 valid.className="error"
+
 }
 
 }
@@ -441,20 +485,21 @@ function exportarExcel(){
 
 let filas=[]
 
-servicios.forEach(servicio=>{
+servicios.forEach(s=>{
 
-servicio.distribucion.forEach(dist=>{
+s.distribucion.forEach(d=>{
 
-let unit=servicio.valor/servicio.totalPersonas
-let valorPagar=unit*dist.personas
+let unit=s.valor/s.totalPersonas
 
 filas.push({
-Servicio:servicio.nombre,
-ValorServicio:servicio.valor,
-PersonasTotales:servicio.totalPersonas,
-Responsable:dist.responsable,
-PersonasResponsable:dist.personas,
-ValorPagar:valorPagar
+
+Servicio:s.nombre,
+ValorServicio:s.valor,
+PersonasTotales:s.totalPersonas,
+Responsable:d.responsable,
+PersonasResponsable:d.personas,
+ValorPagar:unit*d.personas
+
 })
 
 })
@@ -470,7 +515,9 @@ XLSX.writeFile(wb,"DistribucionServicios.xlsx")
 
 }
 
-cargarFecha()
+cargarDatos()
+
+render()
 
 </script>
 
