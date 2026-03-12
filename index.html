@@ -303,12 +303,7 @@ function renderTarjetas(){
        <tr>
          <td>${s.nombre}</td>
          <td class="valorFactura">${formato(s.valor)}</td>
-         <td>
-         <input type="number"
-         value="${dist.personas}"
-         style="width:60px"
-         onchange="editarPersonasTarjeta(${index},'${r}',this)">
-         </td>
+         <td>${Math.round(dist.personas)}</td>
          <td class="valorDistribuido">${formato(valorDist)}</td>
          <td><span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span></td>
        </tr>`;
