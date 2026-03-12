@@ -175,18 +175,6 @@ function agregarServicio(){
  guardar();
 }
 
-function editarValorServicio(i,val){
- servicios[i].valor=parseFloat(val)||0;
- renderTarjetas();
- guardar();
-}
-
-function editarPersonasServicio(i,val){
- servicios[i].totalPersonas=parseFloat(val)||0;
- renderTarjetas();
- guardar();
-}
-
 function renderServicios(){
 
  let html="";
@@ -196,17 +184,21 @@ function renderServicios(){
  html+=`
  <div class="card">
 
- ${s.nombre}
+ <b>${s.nombre}</b>
 
  <br>
 
  Valor:
- <input type="number" value="${s.valor}"
- onchange="editarValorServicio(${i},this.value)">
+ <span onclick="activarEdicionServicio(${i},'valor',this)">
+ ${formato(s.valor)}
+ </span>
+
+ <br>
 
  Personas:
- <input type="number" value="${s.totalPersonas}"
- onchange="editarPersonasServicio(${i},this.value)">
+ <span onclick="activarEdicionServicio(${i},'personas',this)">
+ ${s.totalPersonas}
+ </span>
 
  <span class="x" onclick="eliminarServicio(${i})">x</span>
 
@@ -217,26 +209,43 @@ function renderServicios(){
  document.getElementById("listaServicios").innerHTML=html;
 }
 
-function eliminarServicio(index){
- if(!confirmar("¿Seguro eliminar servicio?")) return;
- servicios.splice(index,1);
+function activarEdicionServicio(index,campo,elemento){
+
+ let valorActual;
+
+ if(campo==="valor"){
+  valorActual=servicios[index].valor;
+ }else{
+  valorActual=servicios[index].totalPersonas;
+ }
+
+ elemento.innerHTML=
+ `<input type="number"
+  value="${valorActual}"
+  style="width:100px"
+  onblur="guardarEdicionServicio(${index},'${campo}',this)">`;
+
+ elemento.querySelector("input").focus();
+}
+
+function guardarEdicionServicio(index,campo,input){
+
+ let nuevoValor=parseFloat(input.value)||0;
+
+ if(campo==="valor"){
+  servicios[index].valor=nuevoValor;
+ }else{
+  servicios[index].totalPersonas=nuevoValor;
+ }
+
  renderServicios();
  renderTarjetas();
  guardar();
 }
 
-function editarPersonasTarjeta(servIndex,responsable,input){
-
- let s=servicios[servIndex];
-
- let dist=s.distribucion.find(d=>d.responsable===responsable);
-
- if(!dist) return;
-
- dist.personas=parseFloat(input.value)||0;
-
- s.totalPersonas=s.distribucion.reduce((a,b)=>a+b.personas,0);
-
+function eliminarServicio(index){
+ if(!confirmar("¿Seguro eliminar servicio?")) return;
+ servicios.splice(index,1);
  renderServicios();
  renderTarjetas();
  guardar();
