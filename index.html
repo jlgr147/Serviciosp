@@ -14,7 +14,10 @@ margin:0;
 padding:20px;
 }
 
-h2{margin-top:40px}
+h2{
+margin-top:40px;
+text-align:center;
+}
 
 input,select{
 padding:10px;
@@ -38,14 +41,17 @@ margin-top:5px;
 .card{
 background:#1e1e1e;
 padding:20px;
-margin-top:20px;
-border-radius:12px;
+margin:20px auto;
+border-radius:16px;
+max-width:420px;
+box-shadow:0 0 20px rgba(0,0,0,0.4);
 }
 
 table{
 width:100%;
 margin-top:10px;
 border-collapse:collapse;
+font-size:16px;
 }
 
 th,td{
@@ -53,16 +59,23 @@ padding:8px;
 text-align:center;
 }
 
-th{background:#333}
+th{
+background:#333;
+}
 
-.valorFactura{color:#aaa}
+.valorFactura{
+color:#aaa;
+}
 
-.valorDistribuido{color:#00cec9}
+.valorDistribuido{
+color:#00cec9;
+}
 
 .total{
 font-size:22px;
 font-weight:bold;
 color:#00ff99;
+margin-top:10px;
 }
 
 .fecha{
@@ -77,10 +90,12 @@ margin-left:10px;
 }
 
 .resumen{
-margin-top:30px;
+margin:40px auto;
 padding:20px;
 background:#1e1e1e;
 border-radius:10px;
+max-width:420px;
+text-align:center;
 }
 
 .correcto{color:#00ff99}
@@ -91,9 +106,12 @@ border-radius:10px;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 </head>
+
 <body>
 
 <h2>Agregar Responsable</h2>
+
+<div class="card">
 
 <input id="nombreResp" placeholder="Nombre responsable">
 
@@ -101,7 +119,12 @@ border-radius:10px;
 
 <div id="listaResp"></div>
 
+</div>
+
+
 <h2>Agregar Servicio</h2>
+
+<div class="card">
 
 <select id="servicio">
 <option>Agua</option>
@@ -122,13 +145,18 @@ border-radius:10px;
 
 <button onclick="agregarServicio()">Agregar Servicio</button>
 
+</div>
+
+
 <h2>Servicios acumulados</h2>
 
 <div id="listaServicios"></div>
 
+
 <h2>Distribución de servicios</h2>
 
 <div id="tarjetas"></div>
+
 
 <div class="resumen">
 
@@ -148,32 +176,40 @@ border-radius:10px;
 
 </div>
 
+
 <script>
 
 let responsables=[]
 let servicios=[]
 let ajustes={}
 
+
 function guardar(){
 localStorage.setItem("dataServicios",JSON.stringify({responsables,servicios,ajustes}))
 }
 
 function cargar(){
+
 let data=localStorage.getItem("dataServicios")
+
 if(data){
 let obj=JSON.parse(data)
 responsables=obj.responsables||[]
 servicios=obj.servicios||[]
 ajustes=obj.ajustes||{}
 }
+
 }
+
 cargar()
+
 
 window.onbeforeunload=function(){
 if(servicios.length>0||responsables.length>0){
 return "¿Seguro que desea actualizar la página?"
 }
 }
+
 
 function formato(n){
 return "$"+Math.round(n).toLocaleString("es-CO")
@@ -182,6 +218,7 @@ return "$"+Math.round(n).toLocaleString("es-CO")
 function redondearArriba100(n){
 return Math.ceil(n/100)*100
 }
+
 
 function agregarResponsable(){
 
@@ -199,6 +236,7 @@ renderTarjetas()
 guardar()
 
 }
+
 
 function eliminarResponsable(i){
 
@@ -221,6 +259,7 @@ guardar()
 
 }
 
+
 function renderResponsables(){
 
 let html="<ul>"
@@ -242,6 +281,7 @@ inputs+=`${r}: <input type="number" id="dist_${i}" placeholder="Personas"><br>`
 document.getElementById("distribucionInputs").innerHTML=inputs
 
 }
+
 
 function agregarServicio(){
 
@@ -282,6 +322,7 @@ guardar()
 
 }
 
+
 function renderServicios(){
 
 let html=""
@@ -309,6 +350,7 @@ html+=`
 document.getElementById("listaServicios").innerHTML=html
 
 }
+
 
 function editarServicio(i){
 
@@ -338,6 +380,7 @@ document.getElementById("listaServicios").innerHTML=html
 
 }
 
+
 function guardarEdicion(i){
 
 let valor=parseFloat(document.getElementById("editValor"+i).value)||0
@@ -358,6 +401,7 @@ guardar()
 
 }
 
+
 function eliminarServicio(i){
 
 if(!confirm("¿Seguro eliminar servicio?"))return
@@ -370,6 +414,7 @@ renderTarjetas()
 guardar()
 
 }
+
 
 function eliminarDistribucion(servIndex,nombre){
 
@@ -384,6 +429,7 @@ renderTarjetas()
 guardar()
 
 }
+
 
 function aplicarAjuste(nombre){
 
@@ -402,6 +448,7 @@ guardar()
 
 }
 
+
 function eliminarAjuste(nombre,i){
 
 if(!confirm("¿Seguro eliminar ajt?"))return
@@ -413,6 +460,7 @@ renderTarjetas()
 guardar()
 
 }
+
 
 function renderTarjetas(){
 
@@ -470,10 +518,11 @@ filas+=`
 
 })
 
+
 html+=`
 <div class="card">
 
-<h3>${r}</h3>
+<h2>${r}</h2>
 
 <table>
 
@@ -481,7 +530,7 @@ html+=`
 <th>Servicio</th>
 <th>Valor</th>
 <th>Personas</th>
-<th>Valor distr.</th>
+<th>Valor Distr.</th>
 <th></th>
 </tr>
 
@@ -502,7 +551,7 @@ ${filas}
 
 </div>
 
-<p class="total">Total a pagar ${formato(redondearArriba100(totalPersona))}</p>
+<p class="total">Total a pagar: ${formato(redondearArriba100(totalPersona))}</p>
 
 </div>
 `
@@ -527,13 +576,10 @@ valid.className="error"
 
 }
 
+
 function exportarExcel(){
 
 let filas=[]
-
-let fechaBase=servicios.length>0?new Date(servicios[0].fecha):new Date()
-let año=fechaBase.getFullYear()
-let mes=fechaBase.toLocaleString("es-CO",{month:"long"})
 
 servicios.forEach(servicio=>{
 
@@ -543,16 +589,12 @@ let unit=servicio.valor/servicio.totalPersonas
 let valorPagar=unit*dist.personas
 
 filas.push({
-
-"Año":año,
-"Mes":mes,
-"Nombre del servicio":servicio.nombre,
-"Valor del servicio":servicio.valor,
-"Personas totales":servicio.totalPersonas,
-"Responsable":dist.responsable,
-"Personas por responsable":dist.personas,
-"Valor a pagar servicio":valorPagar
-
+Servicio:servicio.nombre,
+ValorServicio:servicio.valor,
+PersonasTotales:servicio.totalPersonas,
+Responsable:dist.responsable,
+PersonasResponsable:dist.personas,
+ValorPagar:valorPagar
 })
 
 })
