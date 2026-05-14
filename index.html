@@ -41,6 +41,10 @@ th{background:#333;}
 
 <input id="fechaGeneral" type="date">
 
+<button onclick="actualizarFechaGeneral()">
+Actualizar Fecha
+</button>
+
 <h2>Agregar Servicio</h2>
 
 <select id="servicio">
@@ -93,7 +97,7 @@ th{background:#333;}
 
 let responsables=[];
 let servicios=[];
-let ajustes={};
+let ajustes=[];
 
 function guardar(){
 
@@ -149,9 +153,36 @@ function confirmar(msg){
 
 }
 
+function actualizarFechaGeneral(){
+
+ const nuevaFecha=
+ document.getElementById("fechaGeneral").value;
+
+ if(!nuevaFecha){
+
+  alert("Selecciona una fecha");
+
+  return;
+ }
+
+ servicios.forEach(servicio=>{
+
+  servicio.fecha=nuevaFecha;
+
+ });
+
+ renderTarjetas();
+
+ guardar();
+
+ alert("Fecha actualizada");
+
+}
+
 function agregarResponsable(){
 
- const nombre=document.getElementById("nombreResp").value.trim();
+ const nombre=
+ document.getElementById("nombreResp").value.trim();
 
  if(!nombre) return;
 
@@ -240,16 +271,15 @@ function agregarServicio(){
   document.getElementById("valorServicio").value
  )||0;
 
- const fechaGeneral=document.getElementById("fechaGeneral").value;
+ const fechaGeneral=
+ document.getElementById("fechaGeneral").value;
 
  if(!fechaGeneral){
 
-  alert("Debes seleccionar la fecha general de pago");
+  alert("Debes seleccionar la fecha general");
 
   return;
  }
-
- const fecha=fechaGeneral;
 
  if(servicios.some(s=>s.nombre===nombre)){
 
@@ -292,7 +322,7 @@ function agregarServicio(){
  servicios.push({
   nombre,
   valor,
-  fecha,
+  fecha:fechaGeneral,
   distribucion,
   totalPersonas
  });
@@ -747,7 +777,7 @@ function exportarExcel(){
 
  XLSX.writeFile(
   wb,
-  `Distribucion_${mes}_${año}.xlsx`
+ `Distribucion_${mes}_${año}.xlsx`
  );
 
 }
