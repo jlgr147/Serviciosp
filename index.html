@@ -3,26 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución Servicios</title>
+<title>Distribución Servicios - Final</title>
 
 <style>
 body{background:#111;color:#fff;font-family:Arial;margin:0;padding:20px;}
-h2{margin-top:40px;}
-input,select{padding:8px;border-radius:6px;border:none;margin:4px;width:100%;}
-button{padding:8px 14px;border:none;border-radius:6px;cursor:pointer;background:#00b894;color:white;}
-.card{background:#1e1e1e;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 0 15px rgba(0,0,0,0.5);}
+h2{margin-top:40px; color:#00cec9;}
+h3{margin-top:20px;}
+input,select{padding:10px;border-radius:6px;border:none;margin:4px;width:100%; box-sizing:border-box; background:#222; color:white; border:1px solid #333; transition: border 0.3s;}
+input:focus, select:focus{outline:none; border-color:#00b894; background:#2a2a2a;}
+button{padding:10px 16px;border:none;border-radius:6px;cursor:pointer;background:#00b894;color:white;margin-top:5px; font-weight:bold;}
+button:hover{opacity:0.9;}
+button.peligro{background:#e74c3c;}
+button.info{background:#3498db;}
+.card{background:#1e1e1e;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.5);}
 table{width:100%;margin-top:10px;border-collapse:collapse;}
-th,td{padding:6px;text-align:center;font-size:14px;}
-th{background:#333;}
+th,td{padding:8px;text-align:center;font-size:14px; border-bottom:1px solid #333;}
+th{background:#333; color:#00cec9;}
 .valorFactura{color:#aaa;}
 .valorDistribuido{color:#00cec9;}
-.total{font-size:20px;font-weight:bold;color:#00ff99;}
-.fecha{color:red;font-weight:bold;}
-.x{color:red;cursor:pointer;font-size:14px;margin-left:10px;}
-.resumen{margin-top:30px;padding:20px;background:#1e1e1e;border-radius:10px;}
+.total{font-size:22px;font-weight:bold;color:#00ff99;}
+.fecha-tarjeta{color:#ff7675; font-size:13px; font-weight:bold; margin-bottom:10px;}
+.x{color:#ff7675;cursor:pointer;font-size:16px;margin-left:10px; font-weight:bold;}
+.resumen{margin-top:30px;padding:20px;background:#1e1e1e;border-radius:12px; border:1px solid #333;}
 .correcto{color:#00ff99;}
-.error{color:red;}
+.error{color:#ff7675;}
 .subtitulo{color:#00cec9;font-size:14px;margin-bottom:10px;}
+
+/* Estilo para los inputs de distribución de personas */
+.dist-row { display:flex; align-items:center; margin:8px 0; padding:5px 10px; background:#252525; border-radius:8px; border:1px solid #333; }
+.dist-label { flex:1; font-size:14px; color:#ddd; }
+.dist-input { width:80px !important; margin:0 !important; text-align:center; font-weight:bold; color:#00ff99; }
+
+/* Historial */
+.historial-seccion{margin-top:40px; padding:20px; background:#111; border-radius:12px; border:1px solid #444;}
+.mes-item{background:#222; margin-bottom:10px; border-radius:8px; overflow:hidden; border:1px solid #333;}
+.mes-header{padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; background:#2a2a2a;}
+.mes-body{display:none; padding:15px; background:#1a1a1a;}
+.mes-body.open{display:block;}
+.persona-row{background:#333; margin:5px 0; padding:10px; border-radius:6px; cursor:pointer;}
+.persona-detalle{display:none; margin-top:10px; padding:10px; background:#000; border-radius:4px;}
+.persona-detalle.open{display:block;}
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -30,471 +50,404 @@ th{background:#333;}
 
 <body>
 
-<h2>Agregar Responsable</h2>
+<div style="max-width:800px; margin:auto;">
+    <h2>🏠 Distribución de Servicios</h2>
 
-<input id="nombreResp" placeholder="Nombre responsable">
-<button onclick="agregarResponsable()">Agregar</button>
+    <div class="card">
+        <h3>1. Responsables</h3>
+        <div style="display:flex; gap:10px;">
+            <input id="nombreResp" placeholder="Nombre del responsable">
+            <button onclick="agregarResponsable()">Añadir</button>
+        </div>
+        <div id="listaResp" style="margin-top:10px;"></div>
+    </div>
 
-<div id="listaResp"></div>
+    <div class="card">
+        <h3>2. Fecha General de Pago</h3>
+        <input id="fechaGeneral" type="date">
+        <button onclick="actualizarFechaGeneral()" class="info">Actualizar Fecha en todos los recibos</button>
+    </div>
 
-<h2>Fecha General de Pago</h2>
+    <div class="card">
+        <h3>3. Nuevo Servicio</h3>
+        <select id="servicio">
+            <option>Agua</option>
+            <option>Internet claro</option>
+            <option>Internet Barbosa</option>
+            <option>Gas</option>
+            <option>Luz</option>
+            <option>Aseo</option>
+            <option>Seguro</option>
+            <option>Netflix - YouTube</option>
+        </select>
+        <input id="valorServicio" type="number" step="any" placeholder="Valor total de la factura">
+        
+        <div id="distribucionInputs" style="margin:15px 0;">
+            <!-- Los inputs estilizados se cargarán aquí -->
+        </div>
+        
+        <button onclick="agregarServicio()" style="width:100%">+ Agregar Servicio al Mes</button>
+    </div>
 
-<input id="fechaGeneral" type="date">
+    <h2>📊 Servicios del Mes</h2>
+    <div id="listaServicios"></div>
 
-<button onclick="actualizarFechaGeneral()">
-Actualizar Fecha
-</button>
+    <h2>💳 Distribución Detallada</h2>
+    <div id="tarjetas"></div>
 
-<h2>Agregar Servicio</h2>
+    <div class="resumen">
+        <h3>💰 Resumen y Validación</h3>
+        <p>Total Facturas Ingresadas: <span id="totalFactura">$0</span></p>
+        <p>Total Distribuido (Servicios): <span id="totalDistServ">$0</span></p>
+        <p>Total Ajustes Aplicados: <span id="totalAjustes">$0</span></p>
+        <p style="font-weight:bold; border-top:1px solid #444; padding-top:10px;">
+            Suma Total Distribuida: <span id="totalGeneral">$0</span>
+        </p>
+        <p id="validacion"></p>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button onclick="exportarExcel()" style="flex:1">📊 Excel Actual</button>
+            <button class="peligro" onclick="guardarMes()" style="flex:1">💾 CERRAR Y ARCHIVAR MES</button>
+        </div>
+    </div>
 
-<select id="servicio">
-<option>Agua</option>
-<option>Internet claro</option>
-<option>Internet Barbosa</option>
-<option>Gas</option>
-<option>Luz</option>
-<option>Aseo</option>
-<option>Seguro</option>
-<option>Netflix - YouTube</option>
-</select>
-
-<input id="valorServicio" type="number" step="any" placeholder="Valor servicio">
-
-<div id="distribucionInputs"></div>
-
-<button onclick="agregarServicio()">Agregar Servicio</button>
-
-<h2>Servicios Acumulados</h2>
-
-<div id="listaServicios"></div>
-
-<h2>Distribución de servicios</h2>
-
-<div id="tarjetas"></div>
-
-<div class="resumen">
-
-<h3>Resumen General</h3>
-
-<p>Total Servicios Ingresados:
-<span id="totalFactura">$0</span></p>
-
-<p>Total Distribuido:
-<span id="totalDistribuido">$0</span></p>
-
-<p>Total Ajustes:
-<span id="totalAjustes">$0</span></p>
-
-<p id="validacion"></p>
-
-<br>
-
-<button onclick="exportarExcel()">📊 Descargar Excel</button>
-
+    <div class="historial-seccion">
+        <h2>📋 Historial de Pagos</h2>
+        <div id="historialContenedor"></div>
+    </div>
 </div>
 
 <script>
+let responsables = [];
+let servicios = [];
+let ajustes = {};
+let historial = [];
 
-let responsables=[];
-let servicios=[];
-let ajustes={};
-
-function guardar(){
- localStorage.setItem(
-  "dataServicios",
-  JSON.stringify({responsables,servicios,ajustes})
- );
+function iniciar() {
+    const data = localStorage.getItem("app_servicios_final_v2");
+    if (data) {
+        const obj = JSON.parse(data);
+        responsables = obj.responsables || [];
+        servicios = obj.servicios || [];
+        ajustes = obj.ajustes || {};
+        historial = obj.historial || [];
+    }
+    renderTodo();
 }
 
-function cargar(){
- let data=localStorage.getItem("dataServicios");
- if(data){
-  let obj=JSON.parse(data);
-  responsables=obj.responsables||[];
-  servicios=obj.servicios||[];
-  ajustes=obj.ajustes||{};
- }
+function persistir() {
+    localStorage.setItem("app_servicios_final_v2", JSON.stringify({ responsables, servicios, ajustes, historial }));
 }
 
-cargar();
-
-window.onbeforeunload=function(){
- if(servicios.length>0||responsables.length>0){
-  return "¿Seguro que desea salir? Hay datos cargados.";
- }
-};
-
-function formato(n){
- return "$"+Math.round(n).toLocaleString("es-CO");
+function renderTodo() {
+    renderResponsables();
+    renderServicios();
+    renderTarjetas();
+    renderHistorial();
 }
 
-function redondearArriba100(n){
- return Math.ceil(n/100)*100;
+function renderResponsables() {
+    let html = "<ul>";
+    responsables.forEach((r, i) => {
+        html += `<li>${r} <span class="x" onclick="eliminarResponsable(${i})">×</span></li>`;
+    });
+    html += "</ul>";
+    document.getElementById("listaResp").innerHTML = html;
+
+    let inputs = "<strong style='display:block; margin-bottom:10px; color:#00cec9;'>Personas que aplican:</strong>";
+    responsables.forEach((r, i) => {
+        inputs += `
+        <div class="dist-row">
+            <span class="dist-label">${r}:</span>
+            <input type="number" step="any" id="dist_${i}" class="dist-input" placeholder="0">
+        </div>`;
+    });
+    document.getElementById("distribucionInputs").innerHTML = inputs;
 }
 
-function mostrarPersonas(valor){
- let v = parseFloat(valor) || 0;
- let decimal = v - Math.floor(v);
- if(decimal < 0.5){
-  return Math.floor(v);
- }
- return Math.ceil(v);
+function agregarResponsable() {
+    const n = document.getElementById("nombreResp").value.trim();
+    if (!n) return;
+    responsables.push(n);
+    document.getElementById("nombreResp").value = "";
+    persistir();
+    renderTodo();
 }
 
-function confirmar(msg){
- return confirm(msg);
+function eliminarResponsable(i) {
+    if (!confirm("¿Eliminar responsable?")) return;
+    const r = responsables[i];
+    responsables.splice(i, 1);
+    delete ajustes[r];
+    servicios.forEach(s => s.distribucion = s.distribucion.filter(d => d.responsable !== r));
+    persistir();
+    renderTodo();
 }
 
-function actualizarFechaGeneral(){
- const nuevaFecha=document.getElementById("fechaGeneral").value;
- if(!nuevaFecha){
-  alert("Selecciona una fecha");
-  return;
- }
- servicios.forEach(servicio=>{
-  servicio.fecha=nuevaFecha;
- });
- renderTarjetas();
- guardar();
- alert("Fecha actualizada");
+function actualizarFechaGeneral() {
+    const f = document.getElementById("fechaGeneral").value;
+    if (!f) return alert("Selecciona una fecha");
+    servicios.forEach(s => s.fecha = f);
+    persistir();
+    renderTodo();
 }
 
-function agregarResponsable(){
- const nombre=document.getElementById("nombreResp").value.trim();
- if(!nombre) return;
- responsables.push(nombre);
- document.getElementById("nombreResp").value="";
- renderResponsables();
- renderTarjetas();
- guardar();
+function agregarServicio() {
+    const nombre = document.getElementById("servicio").value;
+    const valor = parseFloat(document.getElementById("valorServicio").value) || 0;
+    const fecha = document.getElementById("fechaGeneral").value;
+
+    if (!fecha) return alert("Falta la fecha general");
+    if (valor <= 0) return alert("Valor inválido");
+    if (servicios.some(s => s.nombre === nombre)) return alert("Servicio ya existe");
+
+    let dist = [];
+    let totalP = 0;
+    responsables.forEach((r, i) => {
+        let p = parseFloat(document.getElementById("dist_" + i).value) || 0;
+        if (p > 0) {
+            dist.push({ responsable: r, personas: p });
+            totalP += p;
+        }
+    });
+
+    if (totalP === 0) return alert("Asigna personas al servicio");
+
+    servicios.push({ nombre, valor, fecha, distribucion: dist, totalPersonas: totalP });
+    document.getElementById("valorServicio").value = "";
+    persistir();
+    renderTodo();
 }
 
-function eliminarResponsable(index){
- if(!confirmar("¿Seguro eliminar responsable?")) return;
- let nombre=responsables[index];
- responsables.splice(index,1);
- delete ajustes[nombre];
- servicios.forEach(s=>{
-  s.distribucion=s.distribucion.filter(
-   d=>d.responsable!==nombre
-  );
- });
- renderResponsables();
- renderTarjetas();
- guardar();
+function renderServicios() {
+    let html = "";
+    servicios.forEach((s, i) => {
+        html += `<div class="card" style="border-left:5px solid #00b894">
+            <div style="display:flex; justify-content:space-between">
+                <strong>${s.nombre}</strong>
+                <span class="x" onclick="eliminarServicio(${i})">×</span>
+            </div>
+            <div style="margin-top:10px; font-size:14px;">
+                Valor: <span onclick="editarServ(${i},'valor',this)" style="border-bottom:1px dashed #666; cursor:pointer">${formato(s.valor)}</span> | 
+                Personas: <span onclick="editarServ(${i},'totalP',this)" style="border-bottom:1px dashed #666; cursor:pointer">${mostrarPersonas(s.totalPersonas)}</span>
+            </div>
+        </div>`;
+    });
+    document.getElementById("listaServicios").innerHTML = html;
 }
 
-function renderResponsables(){
- let html="<ul>";
- responsables.forEach((r,i)=>
-  html+=`
-  <li>
-   ${r}
-   <span class="x"
-   onclick="eliminarResponsable(${i})">x</span>
-  </li>`
- );
- html+="</ul>";
- document.getElementById("listaResp").innerHTML=html;
- 
- let inputs="";
- responsables.forEach((r,i)=>{
-  inputs+=`
-  ${r}:
-  <input
-   type="number"
-   step="any"
-   id="dist_${i}"
-   placeholder="Personas que aplican">
-  <br>
-  `;
- });
- document.getElementById("distribucionInputs").innerHTML=inputs;
+function editarServ(i, campo, el) {
+    let val = campo === 'valor' ? servicios[i].valor : servicios[i].totalPersonas;
+    el.innerHTML = `<input type="number" step="any" value="${val}" style="width:80px" onblur="guardarEdicion(${i},'${campo}',this)">`;
+    el.querySelector("input").focus();
 }
 
-function agregarServicio(){
- const nombre=document.getElementById("servicio").value;
- const valor=parseFloat(document.getElementById("valorServicio").value)||0;
- const fechaGeneral=document.getElementById("fechaGeneral").value;
-
- if(!fechaGeneral){
-  alert("Debes seleccionar la fecha general");
-  return;
- }
-
- if(servicios.some(s=>s.nombre===nombre)){
-  alert("Ese servicio ya fue ingresado");
-  return;
- }
-
- if(valor<=0) return;
-
- let totalPersonas=0;
- let distribucion=[];
-
- responsables.forEach((r,i)=>{
-  let p=parseFloat(document.getElementById("dist_"+i).value)||0;
-  if(p>0){
-   distribucion.push({
-    responsable:r,
-    personas:p
-   });
-   totalPersonas+=p;
-  }
- });
-
- servicios.push({
-  nombre,
-  valor,
-  fecha:fechaGeneral,
-  distribucion,
-  totalPersonas
- });
-
- renderServicios();
- renderTarjetas();
- guardar();
+function guardarEdicion(i, campo, input) {
+    let v = parseFloat(input.value) || 0;
+    if (campo === 'valor') servicios[i].valor = v;
+    else servicios[i].totalPersonas = v;
+    persistir();
+    renderTodo();
 }
 
-function renderServicios(){
- let html="";
- servicios.forEach((s,i)=>{
-  html+=`
-  <div class="card">
-  <b>${s.nombre}</b>
-  <br><br>
-  Valor:
-  <span onclick="activarEdicionServicio(${i},'valor',this)" style="cursor:pointer; border-bottom:1px dashed #666">
-  ${formato(s.valor)}
-  </span>
-  <br><br>
-  Personas:
-  <span onclick="activarEdicionServicio(${i},'personas',this)" style="cursor:pointer; border-bottom:1px dashed #666">
-  ${mostrarPersonas(s.totalPersonas)}
-  </span>
-  <span class="x" onclick="eliminarServicio(${i})">x</span>
-  </div>
-  `;
- });
- document.getElementById("listaServicios").innerHTML=html;
+function eliminarServicio(i) {
+    if (confirm("¿Eliminar servicio?")) {
+        servicios.splice(i, 1);
+        persistir();
+        renderTodo();
+    }
 }
 
-function activarEdicionServicio(index,campo,elemento){
- let valorActual = (campo==="valor") ? servicios[index].valor : servicios[index].totalPersonas;
- elemento.innerHTML=`
- <input
- type="number"
- step="any"
- value="${valorActual}"
- style="width:100px"
- onblur="guardarEdicionServicio(${index},'${campo}',this)">
- `;
- elemento.querySelector("input").focus();
+function renderTarjetas() {
+    let html = "";
+    let tFacturas = servicios.reduce((a, b) => a + b.valor, 0);
+    let tDistServ = 0;
+    let tAjustes = 0;
+
+    responsables.forEach(r => {
+        let filas = "";
+        let subtotalServ = 0;
+        let subtotalAj = 0;
+
+        servicios.forEach((s, sIdx) => {
+            let d = s.distribucion.find(x => x.responsable === r);
+            if (d) {
+                let cuota = (s.valor / s.totalPersonas) * d.personas;
+                subtotalServ += cuota;
+                filas += `<tr>
+                    <td>${s.nombre}</td>
+                    <td><span onclick="editarDist(${sIdx},'${r}',this)" style="color:#00cec9; cursor:pointer">${mostrarPersonas(d.personas)}</span></td>
+                    <td class="valorDistribuido">${formato(cuota)}</td>
+                    <td><span class="x" onclick="quitarDePersona(${sIdx},'${r}')">×</span></td>
+                </tr>`;
+            }
+        });
+
+        (ajustes[r] || []).forEach((aj, ajIdx) => {
+            subtotalAj += aj.valor;
+            filas += `<tr>
+                <td>Ajt: ${aj.concepto}</td>
+                <td>-</td>
+                <td class="valorDistribuido">${formato(aj.valor)}</td>
+                <td><span class="x" onclick="borrarAj('${r}',${ajIdx})">×</span></td>
+            </tr>`;
+        });
+
+        tDistServ += subtotalServ;
+        tAjustes += subtotalAj;
+
+        let fechaMostrar = servicios.length > 0 ? new Date(servicios[0].fecha).toLocaleDateString("es-CO") : "-";
+
+        html += `<div class="card">
+            <h3 style="margin:0">${r}</h3>
+            <div class="fecha-tarjeta">Pagar antes de: ${fechaMostrar}</div>
+            <table>
+                <tr><th>Servicio</th><th>Pers.</th><th>Valor</th><th></th></tr>
+                ${filas}
+            </table>
+            <div style="margin-top:10px; display:flex; gap:5px;">
+                <input id="aj_c_${r}" placeholder="Concepto" style="flex:2; font-size:12px;">
+                <input id="aj_v_${r}" type="number" placeholder="$" style="flex:1; font-size:12px;">
+                <button onclick="addAj('${r}')" style="padding:5px 10px;">+</button>
+            </div>
+            <p class="total">Total: ${formato(Math.ceil((subtotalServ + subtotalAj)/100)*100)}</p>
+        </div>`;
+    });
+
+    document.getElementById("tarjetas").innerHTML = html;
+    document.getElementById("totalFactura").innerText = formato(tFacturas);
+    document.getElementById("totalDistServ").innerText = formato(tDistServ);
+    document.getElementById("totalAjustes").innerText = formato(tAjustes);
+    document.getElementById("totalGeneral").innerText = formato(tDistServ + tAjustes);
+    
+    let v = document.getElementById("validacion");
+    if (Math.round(tFacturas) === Math.round(tDistServ)) {
+        v.innerText = "✔ Cuentas de Servicios Correctas"; v.className = "correcto";
+    } else {
+        v.innerText = "❌ Diferencia en Servicios detectada"; v.className = "error";
+    }
 }
 
-function guardarEdicionServicio(index,campo,input){
- let nuevoValor=parseFloat(input.value)||0;
- if(campo==="valor"){
-  servicios[index].valor=nuevoValor;
- }else{
-  servicios[index].totalPersonas=nuevoValor;
- }
- renderServicios();
- renderTarjetas();
- guardar();
+function quitarDePersona(sIdx, resp) {
+    if (!confirm("¿Quitar este recibo de esta persona?")) return;
+    servicios[sIdx].distribucion = servicios[sIdx].distribucion.filter(x => x.responsable !== resp);
+    persistir();
+    renderTodo();
 }
 
-function activarEdicionDistribucion(servicioIndex,responsable,elemento){
- let servicio=servicios[servicioIndex];
- let dist=servicio.distribucion.find(d=>d.responsable===responsable);
- elemento.innerHTML=`
- <input
- type="number"
- step="any"
- min="0"
- value="${dist.personas}"
- style="width:70px"
- onblur="guardarEdicionDistribucion(${servicioIndex},'${responsable}',this)">
- `;
- elemento.querySelector("input").focus();
+function editarDist(sIdx, resp, el) {
+    let d = servicios[sIdx].distribucion.find(x => x.responsable === resp);
+    el.innerHTML = `<input type="number" step="any" value="${d.personas}" style="width:50px" onblur="finEditDist(${sIdx},'${resp}',this)">`;
+    el.querySelector("input").focus();
 }
 
-function guardarEdicionDistribucion(servicioIndex,responsable,input){
- let valor=parseFloat(input.value);
- if(isNaN(valor)||valor<0){
-  renderTarjetas();
-  return;
- }
- let servicio=servicios[servicioIndex];
- let dist=servicio.distribucion.find(d=>d.responsable===responsable);
- dist.personas=valor;
- guardar();
- renderTarjetas();
+function finEditDist(sIdx, resp, input) {
+    let v = parseFloat(input.value) || 0;
+    let d = servicios[sIdx].distribucion.find(x => x.responsable === resp);
+    d.personas = v;
+    persistir();
+    renderTodo();
 }
 
-function eliminarServicio(index){
- if(!confirmar("¿Seguro eliminar servicio?")) return;
- servicios.splice(index,1);
- renderServicios();
- renderTarjetas();
- guardar();
+function addAj(r) {
+    const c = document.getElementById("aj_c_" + r).value;
+    const v = parseFloat(document.getElementById("aj_v_" + r).value) || 0;
+    if (!v) return;
+    if (!ajustes[r]) ajustes[r] = [];
+    ajustes[r].push({ concepto: c, valor: v });
+    persistir();
+    renderTodo();
 }
 
-function eliminarDistribucion(servIndex,nombre){
- if(!confirmar("¿Seguro quitar este servicio a la tarjeta?")) return;
- let s=servicios[servIndex];
- s.distribucion=s.distribucion.filter(d=>d.responsable!==nombre);
- renderTarjetas();
- guardar();
+function borrarAj(r, i) {
+    ajustes[r].splice(i, 1);
+    persistir();
+    renderTodo();
 }
 
-function aplicarAjuste(nombre){
- const concepto=document.getElementById("concepto_"+nombre).value;
- const valor=parseFloat(document.getElementById("valor_"+nombre).value)||0;
- if(!valor) return;
- if(!ajustes[nombre]) ajustes[nombre]=[];
- ajustes[nombre].push({concepto,valor});
- renderTarjetas();
- guardar();
+function guardarMes() {
+    if (servicios.length === 0) return alert("No hay datos");
+    const fBase = new Date(servicios[0].fecha);
+    const mes = fBase.toLocaleString("es-CO", { month: "long" });
+    const año = fBase.getFullYear();
+    if (!confirm(`¿Cerrar mes de ${mes} ${año}?`)) return;
+
+    let desglose = [];
+    responsables.forEach(r => {
+        let det = [];
+        let suma = 0;
+        servicios.forEach(s => {
+            let d = s.distribucion.find(x => x.responsable === r);
+            if (d) {
+                let c = (s.valor / s.totalPersonas) * d.personas;
+                suma += c;
+                det.push({ n: s.nombre, v: c });
+            }
+        });
+        (ajustes[r] || []).forEach(aj => {
+            suma += aj.valor;
+            det.push({ n: "Ajt: " + aj.concepto, v: aj.valor });
+        });
+        if (det.length > 0) {
+            desglose.push({ nombre: r, total: Math.ceil(suma/100)*100, items: det });
+        }
+    });
+
+    historial.unshift({ id: Date.now(), titulo: `${mes} ${año}`, total: servicios.reduce((a, b) => a + b.valor, 0), desglose, raw: JSON.parse(JSON.stringify(servicios)) });
+    servicios = []; ajustes = {};
+    document.getElementById("fechaGeneral").value = "";
+    persistir();
+    renderTodo();
+    alert("✅ Mes archivado.");
 }
 
-function eliminarAjuste(nombre,index){
- if(!confirmar("¿Seguro eliminar ajt?")) return;
- ajustes[nombre].splice(index,1);
- renderTarjetas();
- guardar();
+function renderHistorial() {
+    const cont = document.getElementById("historialContenedor");
+    if (historial.length === 0) {
+        cont.innerHTML = "<p style='text-align:center; color:#666;'>Historial vacío.</p>";
+        return;
+    }
+    let html = "";
+    historial.forEach((m, i) => {
+        html += `<div class="mes-item">
+            <div class="mes-header" onclick="toggle('body_${i}')">
+                <span><strong>📅 ${m.titulo.toUpperCase()}</strong></span>
+                <span>${formato(m.total)} ▼</span>
+            </div>
+            <div class="mes-body" id="body_${i}">
+                ${m.desglose.map((p, pIdx) => `
+                    <div class="persona-row" onclick="toggle('det_${i}_${pIdx}')">
+                        <div style="display:flex; justify-content:space-between"><span>${p.nombre}</span><strong>${formato(p.total)}</strong></div>
+                        <div class="persona-detalle" id="det_${i}_${pIdx}">
+                            <table style="width:100%; font-size:12px;">
+                                ${p.items.map(it => `<tr><td style="text-align:left">${it.n}</td><td style="text-align:right">${formato(it.v)}</td></tr>`).join('')}
+                            </table>
+                        </div>
+                    </div>
+                `).join('')}
+                <div style="display:flex; gap:10px; margin-top:15px;"><button class="info" style="flex:1" onclick="exportarH(${i})">Excel</button><button class="peligro" style="flex:1" onclick="borrarH(${i})">Borrar</button></div>
+            </div>
+        </div>`;
+    });
+    cont.innerHTML = html;
 }
 
-function renderTarjetas(){
- let html="";
- let totalFactura=servicios.reduce((a,s)=>a+s.valor,0);
- let totalDistribuido=0;
- let totalAjustes=0;
- let mesActual=new Date().toLocaleString("es-CO",{month:"long"});
- let añoActual=new Date().getFullYear();
-
- responsables.forEach(r=>{
-  let filas="";
-  let totalPersona=0;
-
-  servicios.forEach((s,index)=>{
-   let dist=s.distribucion.find(d=>d.responsable===r);
-   if(dist){
-    let unit = s.totalPersonas > 0 ? s.valor / s.totalPersonas : 0;
-    let valorDist = unit * dist.personas;
-    totalPersona += valorDist;
-    totalDistribuido += valorDist;
-
-    filas+=`
-    <tr>
-     <td>${s.nombre}</td>
-     <td class="valorFactura">${formato(s.valor)}</td>
-     <td>
-      <span onclick="activarEdicionDistribucion(${index},'${r}',this)" style="cursor:pointer;color:#00cec9;border-bottom:1px dashed #00cec9">
-       ${mostrarPersonas(dist.personas)}
-      </span>
-     </td>
-     <td class="valorDistribuido">${formato(valorDist)}</td>
-     <td><span class="x" onclick="eliminarDistribucion(${index},'${r}')">x</span></td>
-    </tr>
-    `;
-   }
-  });
-
-  let lista=ajustes[r]||[];
-  lista.forEach((a,i)=>{
-   totalPersona+=a.valor;
-   totalAjustes+=a.valor;
-   filas+=`
-   <tr>
-    <td colspan="3">Ajt: ${a.concepto}</td>
-    <td class="valorDistribuido">${formato(a.valor)}</td>
-    <td><span class="x" onclick="eliminarAjuste('${r}',${i})">x</span></td>
-   </tr>
-   `;
-  });
-
-  html+=`
-  <div class="card">
-   <h3>${r}</h3>
-   <div class="subtitulo">Facturas mes: ${mesActual} ${añoActual}</div>
-   <p class="fecha">Pagar antes de: ${servicios.length>0 ? new Date(servicios[0].fecha).toLocaleDateString("es-CO") : "-"}</p>
-   <table>
-    <tr>
-     <th>Servicio</th>
-     <th>Valor</th>
-     <th>Personas</th>
-     <th>Valor Distr.</th>
-     <th></th>
-    </tr>
-    ${filas}
-   </table>
-   <br>
-   <input type="checkbox" onchange="document.getElementById('aj_${r}').style.display=this.checked?'block':'none'">
-   <label style="font-size:12px;">Ajt</label>
-   <div id="aj_${r}" style="display:none;">
-    <input id="concepto_${r}" placeholder="Concepto ajt">
-    <input type="number" step="any" id="valor_${r}" placeholder="Valor ajt">
-    <button onclick="aplicarAjuste('${r}')">Agregar</button>
-   </div>
-   <p class="total">Total a pagar: ${formato(redondearArriba100(totalPersona))}</p>
-  </div>
-  `;
- });
-
- document.getElementById("tarjetas").innerHTML=html;
- document.getElementById("totalFactura").innerText=formato(totalFactura);
- document.getElementById("totalDistribuido").innerText=formato(totalDistribuido);
- document.getElementById("totalAjustes").innerText=formato(totalAjustes);
-
- let valid=document.getElementById("validacion");
- if(Math.round(totalFactura)===Math.round(totalDistribuido)){
-  valid.innerHTML="✔ Distribución correcta";
-  valid.className="correcto";
- }else{
-  valid.innerHTML="❌ Diferencia detectada";
-  valid.className="error";
- }
+function toggle(id) { document.getElementById(id).classList.toggle("open"); }
+function borrarH(i) { if (confirm("¿Borrar?")) { historial.splice(i, 1); persistir(); renderHistorial(); } }
+function exportarH(i) {
+    const m = historial[i];
+    let filas = [];
+    m.raw.forEach(s => {
+        s.distribucion.forEach(d => {
+            filas.push({ Mes: m.titulo, Servicio: s.nombre, Valor: Math.round(s.valor), Responsable: d.responsable, Pago: Math.round((s.valor/s.totalPersonas)*d.personas) });
+        });
+    });
+    XLSX.writeFile(XLSX.utils.book_append_sheet(XLSX.utils.book_new(), XLSX.utils.json_to_sheet(filas), "Historial"), `Servicios_${m.titulo}.xlsx`);
 }
 
-function exportarExcel(){
- if(servicios.length===0){
-  alert("No hay servicios para exportar");
-  return;
- }
- let filas=[];
- let fechaBase=servicios.length>0 ? new Date(servicios[0].fecha) : new Date();
- let año=fechaBase.getFullYear();
- let mes=fechaBase.toLocaleString("es-CO",{month:"long"});
+function formato(n) { return "$" + Math.round(n).toLocaleString("es-CO"); }
+function mostrarPersonas(n) { let v = parseFloat(n) || 0; return (v - Math.floor(v)) < 0.5 ? Math.floor(v) : Math.ceil(v); }
 
- servicios.forEach(servicio=>{
-  servicio.distribucion.forEach(dist=>{
-   let unit = servicio.totalPersonas > 0 ? servicio.valor / servicio.totalPersonas : 0;
-   let valorPagar = unit * dist.personas;
-   filas.push({
-    "Año":año,
-    "Mes":mes,
-    "Nombre del servicio": servicio.nombre,
-    "Valor del servicio": Math.round(servicio.valor),
-    "Personas totales": servicio.totalPersonas,
-    "Responsable": dist.responsable,
-    "Personas por responsable": dist.personas,
-    "Valor a pagar servicio": Math.round(valorPagar)
-   });
-  });
- });
-
- let wb=XLSX.utils.book_new();
- let ws=XLSX.utils.json_to_sheet(filas);
- XLSX.utils.book_append_sheet(wb, ws, "DistribucionServicios");
- XLSX.writeFile(wb, `Distribucion_${mes}_${año}.xlsx`);
-}
-
-renderResponsables();
-renderServicios();
-renderTarjetas();
-
+iniciar();
 </script>
-
 </body>
 </html>
