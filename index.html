@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución Servicios - Final</title>
+<title>Distribución Servicios - Excel Pro</title>
 
 <style>
 body{background:#111;color:#fff;font-family:Arial;margin:0;padding:20px;}
@@ -29,7 +29,6 @@ th{background:#333; color:#00cec9;}
 .error{color:#ff7675;}
 .subtitulo{color:#00cec9;font-size:14px;margin-bottom:10px;}
 
-/* Estilo para los inputs de distribución de personas */
 .dist-row { display:flex; align-items:center; margin:8px 0; padding:5px 10px; background:#252525; border-radius:8px; border:1px solid #333; }
 .dist-label { flex:1; font-size:14px; color:#ddd; }
 .dist-input { width:80px !important; margin:0 !important; text-align:center; font-weight:bold; color:#00ff99; }
@@ -82,9 +81,7 @@ th{background:#333; color:#00cec9;}
         </select>
         <input id="valorServicio" type="number" step="any" placeholder="Valor total de la factura">
         
-        <div id="distribucionInputs" style="margin:15px 0;">
-            <!-- Los inputs estilizados se cargarán aquí -->
-        </div>
+        <div id="distribucionInputs" style="margin:15px 0;"></div>
         
         <button onclick="agregarServicio()" style="width:100%">+ Agregar Servicio al Mes</button>
     </div>
@@ -123,7 +120,7 @@ let ajustes = {};
 let historial = [];
 
 function iniciar() {
-    const data = localStorage.getItem("app_servicios_final_v2");
+    const data = localStorage.getItem("app_servicios_excel_pro");
     if (data) {
         const obj = JSON.parse(data);
         responsables = obj.responsables || [];
@@ -135,7 +132,7 @@ function iniciar() {
 }
 
 function persistir() {
-    localStorage.setItem("app_servicios_final_v2", JSON.stringify({ responsables, servicios, ajustes, historial }));
+    localStorage.setItem("app_servicios_excel_pro", JSON.stringify({ responsables, servicios, ajustes, historial }));
 }
 
 function renderTodo() {
@@ -155,11 +152,7 @@ function renderResponsables() {
 
     let inputs = "<strong style='display:block; margin-bottom:10px; color:#00cec9;'>Personas que aplican:</strong>";
     responsables.forEach((r, i) => {
-        inputs += `
-        <div class="dist-row">
-            <span class="dist-label">${r}:</span>
-            <input type="number" step="any" id="dist_${i}" class="dist-input" placeholder="0">
-        </div>`;
+        inputs += `<div class="dist-row"><span class="dist-label">${r}:</span><input type="number" step="any" id="dist_${i}" class="dist-input" placeholder="0"></div>`;
     });
     document.getElementById("distribucionInputs").innerHTML = inputs;
 }
@@ -195,7 +188,6 @@ function agregarServicio() {
     const nombre = document.getElementById("servicio").value;
     const valor = parseFloat(document.getElementById("valorServicio").value) || 0;
     const fecha = document.getElementById("fechaGeneral").value;
-
     if (!fecha) return alert("Falta la fecha general");
     if (valor <= 0) return alert("Valor inválido");
     if (servicios.some(s => s.nombre === nombre)) return alert("Servicio ya existe");
@@ -209,9 +201,7 @@ function agregarServicio() {
             totalP += p;
         }
     });
-
     if (totalP === 0) return alert("Asigna personas al servicio");
-
     servicios.push({ nombre, valor, fecha, distribucion: dist, totalPersonas: totalP });
     document.getElementById("valorServicio").value = "";
     persistir();
@@ -221,16 +211,7 @@ function agregarServicio() {
 function renderServicios() {
     let html = "";
     servicios.forEach((s, i) => {
-        html += `<div class="card" style="border-left:5px solid #00b894">
-            <div style="display:flex; justify-content:space-between">
-                <strong>${s.nombre}</strong>
-                <span class="x" onclick="eliminarServicio(${i})">×</span>
-            </div>
-            <div style="margin-top:10px; font-size:14px;">
-                Valor: <span onclick="editarServ(${i},'valor',this)" style="border-bottom:1px dashed #666; cursor:pointer">${formato(s.valor)}</span> | 
-                Personas: <span onclick="editarServ(${i},'totalP',this)" style="border-bottom:1px dashed #666; cursor:pointer">${mostrarPersonas(s.totalPersonas)}</span>
-            </div>
-        </div>`;
+        html += `<div class="card" style="border-left:5px solid #00b894"><div style="display:flex; justify-content:space-between"><strong>${s.nombre}</strong><span class="x" onclick="eliminarServicio(${i})">×</span></div><div style="margin-top:10px; font-size:14px;">Valor: <span onclick="editarServ(${i},'valor',this)" style="border-bottom:1px dashed #666; cursor:pointer">${formato(s.valor)}</span> | Personas: <span onclick="editarServ(${i},'totalP',this)" style="border-bottom:1px dashed #666; cursor:pointer">${mostrarPersonas(s.totalPersonas)}</span></div></div>`;
     });
     document.getElementById("listaServicios").innerHTML = html;
 }
@@ -249,13 +230,7 @@ function guardarEdicion(i, campo, input) {
     renderTodo();
 }
 
-function eliminarServicio(i) {
-    if (confirm("¿Eliminar servicio?")) {
-        servicios.splice(i, 1);
-        persistir();
-        renderTodo();
-    }
-}
+function eliminarServicio(i) { if (confirm("¿Eliminar?")) { servicios.splice(i, 1); persistir(); renderTodo(); } }
 
 function renderTarjetas() {
     let html = "";
@@ -267,68 +242,35 @@ function renderTarjetas() {
         let filas = "";
         let subtotalServ = 0;
         let subtotalAj = 0;
-
         servicios.forEach((s, sIdx) => {
             let d = s.distribucion.find(x => x.responsable === r);
             if (d) {
                 let cuota = (s.valor / s.totalPersonas) * d.personas;
                 subtotalServ += cuota;
-                filas += `<tr>
-                    <td>${s.nombre}</td>
-                    <td><span onclick="editarDist(${sIdx},'${r}',this)" style="color:#00cec9; cursor:pointer">${mostrarPersonas(d.personas)}</span></td>
-                    <td class="valorDistribuido">${formato(cuota)}</td>
-                    <td><span class="x" onclick="quitarDePersona(${sIdx},'${r}')">×</span></td>
-                </tr>`;
+                filas += `<tr><td>${s.nombre}</td><td><span onclick="editarDist(${sIdx},'${r}',this)" style="color:#00cec9; cursor:pointer">${mostrarPersonas(d.personas)}</span></td><td class="valorDistribuido">${formato(cuota)}</td><td><span class="x" onclick="quitarDePersona(${sIdx},'${r}')">×</span></td></tr>`;
             }
         });
-
         (ajustes[r] || []).forEach((aj, ajIdx) => {
             subtotalAj += aj.valor;
-            filas += `<tr>
-                <td>Ajt: ${aj.concepto}</td>
-                <td>-</td>
-                <td class="valorDistribuido">${formato(aj.valor)}</td>
-                <td><span class="x" onclick="borrarAj('${r}',${ajIdx})">×</span></td>
-            </tr>`;
+            filas += `<tr><td>Ajt: ${aj.concepto}</td><td>-</td><td class="valorDistribuido">${formato(aj.valor)}</td><td><span class="x" onclick="borrarAj('${r}',${ajIdx})">×</span></td></tr>`;
         });
-
         tDistServ += subtotalServ;
         tAjustes += subtotalAj;
-
         let fechaMostrar = servicios.length > 0 ? new Date(servicios[0].fecha).toLocaleDateString("es-CO") : "-";
-
-        html += `<div class="card">
-            <h3 style="margin:0">${r}</h3>
-            <div class="fecha-tarjeta">Pagar antes de: ${fechaMostrar}</div>
-            <table>
-                <tr><th>Servicio</th><th>Pers.</th><th>Valor</th><th></th></tr>
-                ${filas}
-            </table>
-            <div style="margin-top:10px; display:flex; gap:5px;">
-                <input id="aj_c_${r}" placeholder="Concepto" style="flex:2; font-size:12px;">
-                <input id="aj_v_${r}" type="number" placeholder="$" style="flex:1; font-size:12px;">
-                <button onclick="addAj('${r}')" style="padding:5px 10px;">+</button>
-            </div>
-            <p class="total">Total: ${formato(Math.ceil((subtotalServ + subtotalAj)/100)*100)}</p>
-        </div>`;
+        html += `<div class="card"><h3 style="margin:0">${r}</h3><div class="fecha-tarjeta">Pagar antes de: ${fechaMostrar}</div><table><tr><th>Servicio</th><th>Pers.</th><th>Valor</th><th></th></tr>${filas}</table><div style="margin-top:10px; display:flex; gap:5px;"><input id="aj_c_${r}" placeholder="Concepto" style="flex:2; font-size:12px;"><input id="aj_v_${r}" type="number" placeholder="$" style="flex:1; font-size:12px;"><button onclick="addAj('${r}')" style="padding:5px 10px;">+</button></div><p class="total">Total: ${formato(Math.ceil((subtotalServ + subtotalAj)/100)*100)}</p></div>`;
     });
-
     document.getElementById("tarjetas").innerHTML = html;
     document.getElementById("totalFactura").innerText = formato(tFacturas);
     document.getElementById("totalDistServ").innerText = formato(tDistServ);
     document.getElementById("totalAjustes").innerText = formato(tAjustes);
     document.getElementById("totalGeneral").innerText = formato(tDistServ + tAjustes);
-    
     let v = document.getElementById("validacion");
-    if (Math.round(tFacturas) === Math.round(tDistServ)) {
-        v.innerText = "✔ Cuentas de Servicios Correctas"; v.className = "correcto";
-    } else {
-        v.innerText = "❌ Diferencia en Servicios detectada"; v.className = "error";
-    }
+    if (Math.round(tFacturas) === Math.round(tDistServ)) { v.innerText = "✔ Cuentas de Servicios Correctas"; v.className = "correcto"; }
+    else { v.innerText = "❌ Diferencia en Servicios detectada"; v.className = "error"; }
 }
 
 function quitarDePersona(sIdx, resp) {
-    if (!confirm("¿Quitar este recibo de esta persona?")) return;
+    if (!confirm("¿Quitar?")) return;
     servicios[sIdx].distribucion = servicios[sIdx].distribucion.filter(x => x.responsable !== resp);
     persistir();
     renderTodo();
@@ -358,11 +300,7 @@ function addAj(r) {
     renderTodo();
 }
 
-function borrarAj(r, i) {
-    ajustes[r].splice(i, 1);
-    persistir();
-    renderTodo();
-}
+function borrarAj(r, i) { ajustes[r].splice(i, 1); persistir(); renderTodo(); }
 
 function guardarMes() {
     if (servicios.length === 0) return alert("No hay datos");
@@ -370,78 +308,77 @@ function guardarMes() {
     const mes = fBase.toLocaleString("es-CO", { month: "long" });
     const año = fBase.getFullYear();
     if (!confirm(`¿Cerrar mes de ${mes} ${año}?`)) return;
-
     let desglose = [];
     responsables.forEach(r => {
-        let det = [];
-        let suma = 0;
+        let det = []; let suma = 0;
         servicios.forEach(s => {
             let d = s.distribucion.find(x => x.responsable === r);
-            if (d) {
-                let c = (s.valor / s.totalPersonas) * d.personas;
-                suma += c;
-                det.push({ n: s.nombre, v: c });
-            }
+            if (d) { let c = (s.valor / s.totalPersonas) * d.personas; suma += c; det.push({ n: s.nombre, v: c }); }
         });
-        (ajustes[r] || []).forEach(aj => {
-            suma += aj.valor;
-            det.push({ n: "Ajt: " + aj.concepto, v: aj.valor });
-        });
-        if (det.length > 0) {
-            desglose.push({ nombre: r, total: Math.ceil(suma/100)*100, items: det });
-        }
+        (ajustes[r] || []).forEach(aj => { suma += aj.valor; det.push({ n: "Ajt: " + aj.concepto, v: aj.valor }); });
+        if (det.length > 0) desglose.push({ nombre: r, total: Math.ceil(suma/100)*100, items: det });
     });
-
     historial.unshift({ id: Date.now(), titulo: `${mes} ${año}`, total: servicios.reduce((a, b) => a + b.valor, 0), desglose, raw: JSON.parse(JSON.stringify(servicios)) });
     servicios = []; ajustes = {};
     document.getElementById("fechaGeneral").value = "";
-    persistir();
-    renderTodo();
+    persistir(); renderTodo();
     alert("✅ Mes archivado.");
 }
 
 function renderHistorial() {
     const cont = document.getElementById("historialContenedor");
-    if (historial.length === 0) {
-        cont.innerHTML = "<p style='text-align:center; color:#666;'>Historial vacío.</p>";
-        return;
-    }
+    if (historial.length === 0) { cont.innerHTML = "<p style='text-align:center; color:#666;'>Historial vacío.</p>"; return; }
     let html = "";
     historial.forEach((m, i) => {
-        html += `<div class="mes-item">
-            <div class="mes-header" onclick="toggle('body_${i}')">
-                <span><strong>📅 ${m.titulo.toUpperCase()}</strong></span>
-                <span>${formato(m.total)} ▼</span>
-            </div>
-            <div class="mes-body" id="body_${i}">
-                ${m.desglose.map((p, pIdx) => `
-                    <div class="persona-row" onclick="toggle('det_${i}_${pIdx}')">
-                        <div style="display:flex; justify-content:space-between"><span>${p.nombre}</span><strong>${formato(p.total)}</strong></div>
-                        <div class="persona-detalle" id="det_${i}_${pIdx}">
-                            <table style="width:100%; font-size:12px;">
-                                ${p.items.map(it => `<tr><td style="text-align:left">${it.n}</td><td style="text-align:right">${formato(it.v)}</td></tr>`).join('')}
-                            </table>
-                        </div>
-                    </div>
-                `).join('')}
-                <div style="display:flex; gap:10px; margin-top:15px;"><button class="info" style="flex:1" onclick="exportarH(${i})">Excel</button><button class="peligro" style="flex:1" onclick="borrarH(${i})">Borrar</button></div>
-            </div>
-        </div>`;
+        html += `<div class="mes-item"><div class="mes-header" onclick="toggle('body_${i}')"><span><strong>📅 ${m.titulo.toUpperCase()}</strong></span><span>${formato(m.total)} ▼</span></div><div class="mes-body" id="body_${i}">${m.desglose.map((p, pIdx) => `<div class="persona-row" onclick="toggle('det_${i}_${pIdx}')"><div style="display:flex; justify-content:space-between"><span>${p.nombre}</span><strong>${formato(p.total)}</strong></div><div class="persona-detalle" id="det_${i}_${pIdx}"><table style="width:100%; font-size:12px;">${p.items.map(it => `<tr><td style="text-align:left">${it.n}</td><td style="text-align:right">${formato(it.v)}</td></tr>`).join('')}</table></div></div>`).join('')}<div style="display:flex; gap:10px; margin-top:15px;"><button class="info" style="flex:1" onclick="exportarH(${i})">Excel</button><button class="peligro" style="flex:1" onclick="borrarH(${i})">Borrar</button></div></div></div>`;
     });
     cont.innerHTML = html;
 }
 
 function toggle(id) { document.getElementById(id).classList.toggle("open"); }
 function borrarH(i) { if (confirm("¿Borrar?")) { historial.splice(i, 1); persistir(); renderHistorial(); } }
+
+function exportarExcel() {
+    if (servicios.length === 0) return alert("No hay datos para exportar");
+    const fBase = new Date(servicios[0].fecha);
+    const mes = fBase.toLocaleString("es-CO", { month: "long" });
+    const año = fBase.getFullYear();
+    
+    let filas = [];
+    servicios.forEach(s => {
+        s.distribucion.forEach(d => {
+            let valorPagar = (s.valor / s.totalPersonas) * d.personas;
+            filas.push({
+                "Año": año,
+                "Mes": mes,
+                "Nombre del servicio": s.nombre,
+                "Valor del servicio": Math.round(s.valor),
+                "Personas totales": s.totalPersonas,
+                "Responsable": d.responsable,
+                "Personas por responsable": d.personas,
+                "Valor a pagar servicio": Math.round(valorPagar)
+            });
+        });
+    });
+
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Distribucion");
+    XLSX.writeFile(wb, `Distribución_${mes}_${año}.xlsx`);
+}
+
 function exportarH(i) {
     const m = historial[i];
     let filas = [];
     m.raw.forEach(s => {
         s.distribucion.forEach(d => {
-            filas.push({ Mes: m.titulo, Servicio: s.nombre, Valor: Math.round(s.valor), Responsable: d.responsable, Pago: Math.round((s.valor/s.totalPersonas)*d.personas) });
+            filas.push({ "Año": m.titulo.split(' ')[1], "Mes": m.titulo.split(' ')[0], "Nombre del servicio": s.nombre, "Valor del servicio": Math.round(s.valor), "Personas totales": s.totalPersonas, "Responsable": d.responsable, "Personas por responsable": d.personas, "Valor a pagar servicio": Math.round((s.valor/s.totalPersonas)*d.personas) });
         });
     });
-    XLSX.writeFile(XLSX.utils.book_append_sheet(XLSX.utils.book_new(), XLSX.utils.json_to_sheet(filas), "Historial"), `Servicios_${m.titulo}.xlsx`);
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Historial");
+    XLSX.writeFile(wb, `Distribución_${m.titulo.replace(' ', '_')}.xlsx`);
 }
 
 function formato(n) { return "$" + Math.round(n).toLocaleString("es-CO"); }
