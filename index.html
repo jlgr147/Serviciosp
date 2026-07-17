@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Distribución Servicios - Excel Pro</title>
+<title>Distribución Servicios - Completo</title>
 
 <style>
 body{background:#111;color:#fff;font-family:Arial;margin:0;padding:20px;}
@@ -17,7 +17,7 @@ button.peligro{background:#e74c3c;}
 button.info{background:#3498db;}
 .card{background:#1e1e1e;padding:20px;margin-top:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.5);}
 table{width:100%;margin-top:10px;border-collapse:collapse;}
-th,td{padding:8px;text-align:center;font-size:14px; border-bottom:1px solid #333;}
+th,td{padding:8px;text-align:center;font-size:12px; border-bottom:1px solid #333;}
 th{background:#333; color:#00cec9;}
 .valorFactura{color:#aaa;}
 .valorDistribuido{color:#00cec9;}
@@ -120,7 +120,7 @@ let ajustes = {};
 let historial = [];
 
 function iniciar() {
-    const data = localStorage.getItem("app_servicios_excel_pro");
+    const data = localStorage.getItem("app_servicios_vfinal_completo");
     if (data) {
         const obj = JSON.parse(data);
         responsables = obj.responsables || [];
@@ -132,7 +132,7 @@ function iniciar() {
 }
 
 function persistir() {
-    localStorage.setItem("app_servicios_excel_pro", JSON.stringify({ responsables, servicios, ajustes, historial }));
+    localStorage.setItem("app_servicios_vfinal_completo", JSON.stringify({ responsables, servicios, ajustes, historial }));
 }
 
 function renderTodo() {
@@ -247,17 +247,38 @@ function renderTarjetas() {
             if (d) {
                 let cuota = (s.valor / s.totalPersonas) * d.personas;
                 subtotalServ += cuota;
-                filas += `<tr><td>${s.nombre}</td><td><span onclick="editarDist(${sIdx},'${r}',this)" style="color:#00cec9; cursor:pointer">${mostrarPersonas(d.personas)}</span></td><td class="valorDistribuido">${formato(cuota)}</td><td><span class="x" onclick="quitarDePersona(${sIdx},'${r}')">×</span></td></tr>`;
+                filas += `<tr>
+                    <td>${s.nombre}</td>
+                    <td class="valorFactura">${formato(s.valor)}</td>
+                    <td><span onclick="editarDist(${sIdx},'${r}',this)" style="color:#00cec9; cursor:pointer">${mostrarPersonas(d.personas)}</span></td>
+                    <td class="valorDistribuido">${formato(cuota)}</td>
+                    <td><span class="x" onclick="quitarDePersona(${sIdx},'${r}')">×</span></td>
+                </tr>`;
             }
         });
         (ajustes[r] || []).forEach((aj, ajIdx) => {
             subtotalAj += aj.valor;
-            filas += `<tr><td>Ajt: ${aj.concepto}</td><td>-</td><td class="valorDistribuido">${formato(aj.valor)}</td><td><span class="x" onclick="borrarAj('${r}',${ajIdx})">×</span></td></tr>`;
+            filas += `<tr>
+                <td>Ajt: ${aj.concepto}</td>
+                <td>-</td>
+                <td>-</td>
+                <td class="valorDistribuido">${formato(aj.valor)}</td>
+                <td><span class="x" onclick="borrarAj('${r}',${ajIdx})">×</span></td>
+            </tr>`;
         });
         tDistServ += subtotalServ;
         tAjustes += subtotalAj;
         let fechaMostrar = servicios.length > 0 ? new Date(servicios[0].fecha).toLocaleDateString("es-CO") : "-";
-        html += `<div class="card"><h3 style="margin:0">${r}</h3><div class="fecha-tarjeta">Pagar antes de: ${fechaMostrar}</div><table><tr><th>Servicio</th><th>Pers.</th><th>Valor</th><th></th></tr>${filas}</table><div style="margin-top:10px; display:flex; gap:5px;"><input id="aj_c_${r}" placeholder="Concepto" style="flex:2; font-size:12px;"><input id="aj_v_${r}" type="number" placeholder="$" style="flex:1; font-size:12px;"><button onclick="addAj('${r}')" style="padding:5px 10px;">+</button></div><p class="total">Total: ${formato(Math.ceil((subtotalServ + subtotalAj)/100)*100)}</p></div>`;
+        html += `<div class="card">
+            <h3 style="margin:0">${r}</h3>
+            <div class="fecha-tarjeta">Pagar antes de: ${fechaMostrar}</div>
+            <table>
+                <tr><th>Servicio</th><th>Vr Fac</th><th>Pers.</th><th>Valor</th><th></th></tr>
+                ${filas}
+            </table>
+            <div style="margin-top:10px; display:flex; gap:5px;"><input id="aj_c_${r}" placeholder="Concepto" style="flex:2; font-size:12px;"><input id="aj_v_${r}" type="number" placeholder="$" style="flex:1; font-size:12px;"><button onclick="addAj('${r}')" style="padding:5px 10px;">+</button></div>
+            <p class="total">Total: ${formato(Math.ceil((subtotalServ + subtotalAj)/100)*100)}</p>
+        </div>`;
     });
     document.getElementById("tarjetas").innerHTML = html;
     document.getElementById("totalFactura").innerText = formato(tFacturas);
@@ -313,9 +334,9 @@ function guardarMes() {
         let det = []; let suma = 0;
         servicios.forEach(s => {
             let d = s.distribucion.find(x => x.responsable === r);
-            if (d) { let c = (s.valor / s.totalPersonas) * d.personas; suma += c; det.push({ n: s.nombre, v: c }); }
+            if (d) { let c = (s.valor / s.totalPersonas) * d.personas; suma += c; det.push({ n: s.nombre, v: c, vf: s.valor, p: d.personas }); }
         });
-        (ajustes[r] || []).forEach(aj => { suma += aj.valor; det.push({ n: "Ajt: " + aj.concepto, v: aj.valor }); });
+        (ajustes[r] || []).forEach(aj => { suma += aj.valor; det.push({ n: "Ajt: " + aj.concepto, v: aj.valor, vf: 0, p: 0 }); });
         if (det.length > 0) desglose.push({ nombre: r, total: Math.ceil(suma/100)*100, items: det });
     });
     historial.unshift({ id: Date.now(), titulo: `${mes} ${año}`, total: servicios.reduce((a, b) => a + b.valor, 0), desglose, raw: JSON.parse(JSON.stringify(servicios)) });
@@ -330,7 +351,7 @@ function renderHistorial() {
     if (historial.length === 0) { cont.innerHTML = "<p style='text-align:center; color:#666;'>Historial vacío.</p>"; return; }
     let html = "";
     historial.forEach((m, i) => {
-        html += `<div class="mes-item"><div class="mes-header" onclick="toggle('body_${i}')"><span><strong>📅 ${m.titulo.toUpperCase()}</strong></span><span>${formato(m.total)} ▼</span></div><div class="mes-body" id="body_${i}">${m.desglose.map((p, pIdx) => `<div class="persona-row" onclick="toggle('det_${i}_${pIdx}')"><div style="display:flex; justify-content:space-between"><span>${p.nombre}</span><strong>${formato(p.total)}</strong></div><div class="persona-detalle" id="det_${i}_${pIdx}"><table style="width:100%; font-size:12px;">${p.items.map(it => `<tr><td style="text-align:left">${it.n}</td><td style="text-align:right">${formato(it.v)}</td></tr>`).join('')}</table></div></div>`).join('')}<div style="display:flex; gap:10px; margin-top:15px;"><button class="info" style="flex:1" onclick="exportarH(${i})">Excel</button><button class="peligro" style="flex:1" onclick="borrarH(${i})">Borrar</button></div></div></div>`;
+        html += `<div class="mes-item"><div class="mes-header" onclick="toggle('body_${i}')"><span><strong>📅 ${m.titulo.toUpperCase()}</strong></span><span>${formato(m.total)} ▼</span></div><div class="mes-body" id="body_${i}">${m.desglose.map((p, pIdx) => `<div class="persona-row" onclick="toggle('det_${i}_${pIdx}')"><div style="display:flex; justify-content:space-between"><span>${p.nombre}</span><strong>${formato(p.total)}</strong></div><div class="persona-detalle" id="det_${i}_${pIdx}"><table style="width:100%; font-size:11px;"><tr><th>Servicio</th><th>Vr Fac</th><th>Pers.</th><th>Valor</th></tr>${p.items.map(it => `<tr><td style="text-align:left">${it.n}</td><td>${it.vf > 0 ? formato(it.vf) : '-'}</td><td>${it.p > 0 ? mostrarPersonas(it.p) : '-'}</td><td style="text-align:right">${formato(it.v)}</td></tr>`).join('')}</table></div></div>`).join('')}<div style="display:flex; gap:10px; margin-top:15px;"><button class="info" style="flex:1" onclick="exportarH(${i})">Excel</button><button class="peligro" style="flex:1" onclick="borrarH(${i})">Borrar</button></div></div></div>`;
     });
     cont.innerHTML = html;
 }
@@ -343,24 +364,13 @@ function exportarExcel() {
     const fBase = new Date(servicios[0].fecha);
     const mes = fBase.toLocaleString("es-CO", { month: "long" });
     const año = fBase.getFullYear();
-    
     let filas = [];
     servicios.forEach(s => {
         s.distribucion.forEach(d => {
             let valorPagar = (s.valor / s.totalPersonas) * d.personas;
-            filas.push({
-                "Año": año,
-                "Mes": mes,
-                "Nombre del servicio": s.nombre,
-                "Valor del servicio": Math.round(s.valor),
-                "Personas totales": s.totalPersonas,
-                "Responsable": d.responsable,
-                "Personas por responsable": d.personas,
-                "Valor a pagar servicio": Math.round(valorPagar)
-            });
+            filas.push({ "Año": año, "Mes": mes, "Nombre del servicio": s.nombre, "Valor del servicio": Math.round(s.valor), "Personas totales": s.totalPersonas, "Responsable": d.responsable, "Personas por responsable": d.personas, "Valor a pagar servicio": Math.round(valorPagar) });
         });
     });
-
     const ws = XLSX.utils.json_to_sheet(filas);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Distribucion");
